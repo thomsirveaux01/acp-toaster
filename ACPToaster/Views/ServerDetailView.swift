@@ -28,23 +28,47 @@ struct ServerDetailView: View {
             // like .listRowSeparator actually take effect, and the built-in
             // alternating row backgrounds give the Screen Sharing-style zebra.
             List {
-                // Server type (when known) above the detection status + Detect
-                // button, kept as its own thing at the top.
+                // The server's icon (which doubles as the dropdown for
+                // changing it) beside the server type and detection status.
                 Section {
-                    VStack(alignment: .leading, spacing: 6) {
-                        if let kind = state.kind {
-                            Text("Server type: \(kind.rawValue)")
-                                .font(.headline)
-                        }
-                        HStack {
-                            statusLabel
-                            Spacer()
-                            Button {
-                                detect()
-                            } label: {
-                                Label("Detect", systemImage: "antenna.radiowaves.left.and.right")
+                    HStack(alignment: .top, spacing: 10) {
+                        Menu {
+                            ForEach(ServerIcon.allCases) { option in
+                                Button {
+                                    appModel.setServerIcon(server.id, option.symbol)
+                                } label: {
+                                    Label(option.label, systemImage: option.symbol)
+                                }
                             }
-                            .disabled(state.isDetecting)
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: server.icon)
+                                    .font(.title2)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .menuStyle(.button)
+                        .buttonStyle(.borderless)
+                        .fixedSize()
+                        .help("Change the server icon")
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            if let kind = state.kind {
+                                Text("Server type: \(kind.rawValue)")
+                                    .font(.headline)
+                            }
+                            HStack {
+                                statusLabel
+                                Spacer()
+                                Button {
+                                    detect()
+                                } label: {
+                                    Label("Detect", systemImage: "antenna.radiowaves.left.and.right")
+                                }
+                                .disabled(state.isDetecting)
+                            }
                         }
                     }
                     .listRowSeparator(.hidden)

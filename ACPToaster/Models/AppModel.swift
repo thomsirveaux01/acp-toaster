@@ -42,7 +42,7 @@ final class AppModel {
     /// Validates and adds a server. Fails with a user-facing message when the
     /// name is empty, the address doesn't normalize, or the server already exists.
     @discardableResult
-    func addServer(name: String, address: String) -> Result<Server, AppModelError> {
+    func addServer(name: String, address: String, icon: String) -> Result<Server, AppModelError> {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
             return .failure(AppModelError(message: "Give the server a name."))
@@ -54,7 +54,7 @@ final class AppModel {
             let hostPort = baseURL.port.map { "\(baseURL.host ?? ""):\($0)" } ?? (baseURL.host ?? "")
             return .failure(AppModelError(message: "A server at \(hostPort) is already in your list."))
         }
-        let server = Server(name: trimmedName, baseURL: baseURL)
+        let server = Server(name: trimmedName, baseURL: baseURL, icon: icon)
         servers.append(server)
         return .success(server)
     }
@@ -63,7 +63,7 @@ final class AppModel {
     /// when the name is empty, the address doesn't normalize, or another
     /// server already uses that address.
     @discardableResult
-    func updateServer(_ id: UUID, name: String, address: String) -> Result<Server, AppModelError> {
+    func updateServer(_ id: UUID, name: String, address: String, icon: String) -> Result<Server, AppModelError> {
         guard let index = servers.firstIndex(where: { $0.id == id }) else {
             return .failure(AppModelError(message: "That server is no longer in your list."))
         }
@@ -80,7 +80,14 @@ final class AppModel {
         }
         servers[index].name = trimmedName
         servers[index].baseURL = baseURL
+        servers[index].icon = icon
         return .success(servers[index])
+    }
+
+    /// Changes a server's icon (from the detail view's dropdown).
+    func setServerIcon(_ id: UUID, _ symbol: String) {
+        guard let index = servers.firstIndex(where: { $0.id == id }) else { return }
+        servers[index].icon = symbol
     }
 
     /// Removes a server and any selections that referenced it.

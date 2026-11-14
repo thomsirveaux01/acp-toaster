@@ -1,16 +1,62 @@
 import Foundation
 
+/// The SF Symbols a server can wear — outline versions only, covering the
+/// Mac desktop and laptop, PC, server, and CPU glyphs.
+enum ServerIcon: String, CaseIterable, Identifiable {
+    case macDesktop = "desktopcomputer"
+    case macPro = "macpro.gen3"
+    case macStudio = "macstudio"
+    case macLaptop = "macbook"
+    case laptop = "laptopcomputer"
+    case pc = "pc"
+    case serverRack = "server.rack"
+    case cpu = "cpu"
+
+    var id: String { rawValue }
+    /// The SF Symbol name.
+    var symbol: String { rawValue }
+    /// The label shown in pickers and menus.
+    var label: String {
+        switch self {
+        case .macDesktop: "Mac Desktop"
+        case .macPro: "Mac Pro"
+        case .macStudio: "Mac Studio"
+        case .macLaptop: "MacBook"
+        case .laptop: "Laptop"
+        case .pc: "PC"
+        case .serverRack: "Server Rack"
+        case .cpu: "CPU"
+        }
+    }
+}
+
 /// A local OpenAI-compatible model server (LM Studio, Bionic, …).
 struct Server: Codable, Identifiable, Hashable {
     let id: UUID
     var name: String
     /// Always normalized: includes the scheme and ends with `/v1`.
     var baseURL: URL
+    /// The SF Symbol shown in the sidebar and the detail header.
+    var icon: String
 
-    init(id: UUID = UUID(), name: String, baseURL: URL) {
+    init(id: UUID = UUID(), name: String, baseURL: URL, icon: String = ServerIcon.macDesktop.symbol) {
         self.id = id
         self.name = name
         self.baseURL = baseURL
+        self.icon = icon
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, baseURL, icon
+    }
+
+    /// Decodes a server; ones saved before icons existed get the default.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        baseURL = try container.decode(URL.self, forKey: .baseURL)
+        icon = try container.decodeIfPresent(String.self, forKey: .icon) ?? ServerIcon.macDesktop.symbol
     }
 
     /// `host:port`, for display.

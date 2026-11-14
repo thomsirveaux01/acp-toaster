@@ -14,6 +14,7 @@ struct ServerEditorSheet: View {
 
     @State private var name: String
     @State private var address: String
+    @State private var icon: String
     @State private var errorMessage: String?
 
     init(server: Server? = nil, onSave: @escaping (Server) -> Void = { _ in }) {
@@ -21,6 +22,7 @@ struct ServerEditorSheet: View {
         self.onSave = onSave
         _name = State(initialValue: server?.name ?? "")
         _address = State(initialValue: server?.hostPort ?? "")
+        _icon = State(initialValue: server?.icon ?? ServerIcon.macDesktop.symbol)
     }
 
     private var isEditing: Bool { server != nil }
@@ -36,6 +38,13 @@ struct ServerEditorSheet: View {
 
             Form {
                 Section {
+                    // The glyph shown in the sidebar and the detail header.
+                    Picker("Icon", selection: $icon) {
+                        ForEach(ServerIcon.allCases) { option in
+                            Label(option.label, systemImage: option.symbol)
+                                .tag(option.symbol)
+                        }
+                    }
                     TextField("Name", text: $name)
                     TextField("Address", text: $address, prompt: Text("127.0.0.1:1235"))
                         .autocorrectionDisabled()
@@ -65,7 +74,7 @@ struct ServerEditorSheet: View {
             }
             .padding()
         }
-        .frame(width: 420, height: 280)
+        .frame(width: 420, height: 320)
     }
 
     private var trimmedName: String {
@@ -79,9 +88,9 @@ struct ServerEditorSheet: View {
     private func save() {
         let result: Result<Server, AppModelError>
         if let server {
-            result = appModel.updateServer(server.id, name: trimmedName, address: trimmedAddress)
+            result = appModel.updateServer(server.id, name: trimmedName, address: trimmedAddress, icon: icon)
         } else {
-            result = appModel.addServer(name: trimmedName, address: trimmedAddress)
+            result = appModel.addServer(name: trimmedName, address: trimmedAddress, icon: icon)
         }
         switch result {
         case .success(let server):

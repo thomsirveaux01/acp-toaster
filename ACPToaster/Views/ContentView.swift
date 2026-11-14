@@ -59,11 +59,18 @@ struct ContentView: View {
         VStack(spacing: 0) {
             List(selection: $selectedServerID) {
                 ForEach(appModel.servers) { server in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(server.name)
-                        Text(server.hostPort)
-                            .font(.caption)
+                    HStack(spacing: 8) {
+                        // The server's chosen glyph; a fixed width keeps the
+                        // text column aligned across differently-shaped icons.
+                        Image(systemName: server.icon)
+                            .frame(width: 22)
                             .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(server.name)
+                            Text(server.hostPort)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     .tag(server.id)
                     .contentShape(Rectangle())
