@@ -18,14 +18,21 @@ import AppKit
         }
     }
 
-    /// The credits block shown in the standard About panel.
+    /// The credits block shown in the standard About panel, centered, with
+    /// the word "GitHub" itself as the link.
     private static let credits: NSAttributedString = {
+        let style = NSMutableParagraphStyle()
+        style.alignment = .center
         let base = NSMutableAttributedString(
-            string: "Andrew Cunningham, 2026\n\nVibe-coded locally with open-weight Apache 2.0 models on Apple Silicon Macs\n\nGitHub: "
+            string: "Andrew Cunningham, 2026\n\nVibe-coded locally with open-weight Apache 2.0 models on Apple Silicon Macs\n\n",
+            attributes: [.paragraphStyle: style]
         )
         let link = NSAttributedString(
-            string: "https://github.com/thomsirveaux01/acp-toaster",
-            attributes: [.link: "https://github.com/thomsirveaux01/acp-toaster"]
+            string: "GitHub",
+            attributes: [
+                .link: "https://github.com/thomsirveaux01/acp-toaster",
+                .paragraphStyle: style,
+            ]
         )
         base.append(link)
         return base
