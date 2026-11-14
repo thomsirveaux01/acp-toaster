@@ -11,10 +11,25 @@ struct ContentView: View {
 
     /// The server currently selected in the sidebar.
     @State private var selectedServerID: UUID?
-    /// The server being edited in the sheet; nil means adding a new one.
-    @State private var editorServer: Server?
-    @State private var showEditor = false
     @State private var showSetupSheet = false
+
+    /// What the editor sheet is showing: a new server to add, or an existing
+    /// one to edit. Driving the sheet with `.sheet(item:)` (instead of a
+    /// separate `isPresented` flag plus an optional) guarantees the sheet
+    /// always sees the current value — the two-state version could present
+    /// with a stale `nil` and show the blank add form.
+    private enum EditorSheet: Identifiable {
+        case add
+        case edit(Server)
+
+        var id: String {
+            switch self {
+            case .add: "add"
+            case .edit(let server): server.id.uuidString
+            }
+        }
+    }
+    @State private var editorSheet: EditorSheet?
 
     var body: some View {
         Group {
@@ -42,12 +57,16 @@ struct ContentView: View {
         } detail: {
             detail
         }
-        .sheet(isPresented: $showEditor) {
-            ServerEditorSheet(server: editorServer) { newServer in
-                // In add mode, select the new server; in edit mode it's already selected.
-                if editorServer == nil {
+        .sheet(item: $editorSheet) { sheet in
+            switch sheet {
+            case .add:
+                // In add mode, select the new server once it's saved.
+                ServerEditorSheet { newServer in
                     selectedServerID = newServer.id
                 }
+            case .edit(let server):
+                // In edit mode the server is already selected.
+                ServerEditorSheet(server: server) { _ in }
             }
         }
         .onAppear { selectFirstIfNone() }
@@ -75,8 +94,7 @@ struct ContentView: View {
                     .tag(server.id)
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) {
-                        editorServer = server
-                        showEditor = true
+                        editorSheet = .edit(server)
                     }
                 }
             }
@@ -87,8 +105,7 @@ struct ContentView: View {
             Divider()
             HStack(spacing: 0) {
                 Button {
-                    editorServer = nil
-                    showEditor = true
+                    editorSheet = .add
                 } label: {
                     Image(systemName: "plus")
                         .frame(width: 28)
