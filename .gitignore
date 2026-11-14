@@ -1,0 +1,14 @@
+# Local agent handoff doc — not for the repo.
+HANDOFF.md
+
+# macOS / Dropbox
+.DS_Store
+
+# Xcode
+xcuserdata/
+DerivedData/
+build/
+*.xcscmblueprint
+
+# Stale icon backup artifact
+AppIcon.icon.sb-*/

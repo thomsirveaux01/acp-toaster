@@ -1,0 +1,108 @@
+{
+  "features" : [
+    "specular-location"
+  ],
+  "fill" : {
+    "linear-gradient" : [
+      "display-p3:0.35341,0.60481,0.92799,1.00000",
+      "display-p3:0.18024,0.25052,0.87677,1.00000"
+    ]
+  },
+  "groups" : [
+    {
+      "blur-material" : null,
+      "hidden" : false,
+      "layers" : [
+        {
+          "blend-mode" : "normal",
+          "fill" : {
+            "linear-gradient" : [
+              "display-p3:0.56019,0.56019,0.56019,1.00000",
+              "display-p3:0.74473,0.74473,0.74473,1.00000"
+            ],
+            "orientation" : {
+              "start" : {
+                "x" : 0.15966796875,
+                "y" : 0.9058314732142857
+              },
+              "stop" : {
+                "x" : 0.8230298913043478,
+                "y" : 0.43819754464285715
+              }
+            }
+          },
+          "image-name" : "macstudio.fill.png",
+          "name" : "macstudio.fill",
+          "opacity" : 1,
+          "position" : {
+            "scale" : 1.6,
+            "translation-in-points" : [
+              0,
+              154.79999999999995
+            ]
+          }
+        },
+        {
+          "blend-mode" : "normal",
+          "fill" : {
+            "linear-gradient" : [
+              "display-p3:0.85307,0.58484,0.17337,1.00000",
+              "display-p3:0.40860,0.28475,0.11494,1.00000"
+            ],
+            "orientation" : {
+              "start" : {
+                "x" : 0.5,
+                "y" : 0.40339781746031744
+              },
+              "stop" : {
+                "x" : 0.5,
+                "y" : 1
+              }
+            }
+          },
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "puzzle-glyph.png",
+          "name" : "puzzle-glyph",
+          "opacity" : 0.8,
+          "position" : {
+            "scale" : 0.7,
+            "translation-in-points" : [
+              -9,
+              -161
+            ]
+          }
+        }
+      ],
+      "lighting" : "individual",
+      "name" : "base",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 1
+      },
+      "specular" : "outside",
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0
+      }
+    },
+    {
+      "layers" : [
+
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.3
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : [
+      "macOS"
+    ]
+  }
+}
