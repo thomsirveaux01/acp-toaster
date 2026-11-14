@@ -84,12 +84,6 @@ final class AppModel {
         return .success(servers[index])
     }
 
-    /// Changes a server's icon (from the detail view's dropdown).
-    func setServerIcon(_ id: UUID, _ symbol: String) {
-        guard let index = servers.firstIndex(where: { $0.id == id }) else { return }
-        servers[index].icon = symbol
-    }
-
     /// Removes a server and any selections that referenced it.
     func removeServer(_ id: UUID) {
         servers.removeAll { $0.id == id }

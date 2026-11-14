@@ -28,31 +28,14 @@ struct ServerDetailView: View {
             // like .listRowSeparator actually take effect, and the built-in
             // alternating row backgrounds give the Screen Sharing-style zebra.
             List {
-                // The server's icon (which doubles as the dropdown for
-                // changing it) beside the server type and detection status.
+                // The server's icon, large enough to span the server type and
+                // detection status rows, beside them. (The icon is chosen in
+                // the add/edit sheet.)
                 Section {
-                    HStack(alignment: .top, spacing: 10) {
-                        Menu {
-                            ForEach(ServerIcon.allCases) { option in
-                                Button {
-                                    appModel.setServerIcon(server.id, option.symbol)
-                                } label: {
-                                    Label(option.label, systemImage: option.symbol)
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 3) {
-                                Image(systemName: server.icon)
-                                    .font(.title2)
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .menuStyle(.button)
-                        .buttonStyle(.borderless)
-                        .fixedSize()
-                        .help("Change the server icon")
+                    HStack(spacing: 10) {
+                        Image(systemName: server.icon)
+                            .font(.system(size: 40))
+                            .foregroundStyle(.secondary)
 
                         VStack(alignment: .leading, spacing: 6) {
                             if let kind = state.kind {

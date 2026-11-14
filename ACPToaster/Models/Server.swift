@@ -1,16 +1,19 @@
 import Foundation
 
 /// The SF Symbols a server can wear — outline versions only, covering the
-/// Mac desktop and laptop, PC, server, and CPU glyphs.
+/// Mac desktop and laptop, PC, server, CPU, and cloud glyphs.
 enum ServerIcon: String, CaseIterable, Identifiable {
     case macDesktop = "desktopcomputer"
     case macPro = "macpro.gen3"
     case macStudio = "macstudio"
+    case macMini = "macmini"
+    case macMiniGen2 = "macmini.gen2"
     case macLaptop = "macbook"
     case laptop = "laptopcomputer"
     case pc = "pc"
     case serverRack = "server.rack"
     case cpu = "cpu"
+    case cloud = "cloud"
 
     var id: String { rawValue }
     /// The SF Symbol name.
@@ -21,11 +24,14 @@ enum ServerIcon: String, CaseIterable, Identifiable {
         case .macDesktop: "Mac Desktop"
         case .macPro: "Mac Pro"
         case .macStudio: "Mac Studio"
+        case .macMini: "Mac mini"
+        case .macMiniGen2: "Mac mini Gen 2"
         case .macLaptop: "MacBook"
         case .laptop: "Laptop"
         case .pc: "PC"
         case .serverRack: "Server Rack"
         case .cpu: "CPU"
+        case .cloud: "Cloud"
         }
     }
 }
