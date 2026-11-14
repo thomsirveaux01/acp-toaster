@@ -309,12 +309,12 @@ private struct ModelToastRow: View {
             HStack(alignment: .center, spacing: 8) {
                 // The model's info, stacked: name over specs over capabilities.
                 // Apple's hierarchical text: headline for the primary label,
-                // caption + secondary for the supporting lines — each bumped
-                // up 2pt from the macOS system sizes (13/10/10 → 15/12/12).
-                VStack(alignment: .leading, spacing: 3) {
+                // caption + secondary for the supporting lines, with a little
+                // extra spacing between the lines.
+                VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 6) {
                         Text(model.displayName ?? model.id)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.headline)
                             .lineLimit(1)
                         if model.isEmbedding {
                             badge("embedded")
@@ -322,7 +322,7 @@ private struct ModelToastRow: View {
                     }
                     if !specParts.isEmpty {
                         Text(specParts.joined(separator: " · "))
-                            .font(.system(size: 12))
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
@@ -357,12 +357,12 @@ private struct ModelToastRow: View {
             if let result {
                 if let error = result.error {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
-                        .font(.system(size: 12))
+                        .font(.caption)
                         .foregroundStyle(.red)
                 } else {
                     HStack(spacing: 8) {
                         Text(result.wrapperPath)
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(.system(.caption, design: .monospaced))
                             .textSelection(.enabled)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -422,7 +422,7 @@ private struct ModelToastRow: View {
     /// A small muted capsule label, e.g. "embedded" or "vision".
     private func badge(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 12))
+            .font(.caption2)
             .padding(.horizontal, 6)
             .padding(.vertical, 1)
             .foregroundStyle(.secondary)
