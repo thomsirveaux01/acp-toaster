@@ -28,17 +28,24 @@ struct ServerDetailView: View {
             // like .listRowSeparator actually take effect, and the built-in
             // alternating row backgrounds give the Screen Sharing-style zebra.
             List {
-                // Detection status + the Detect button, kept as its own thing at the top.
+                // Server type (when known) above the detection status + Detect
+                // button, kept as its own thing at the top.
                 Section {
-                    HStack {
-                        statusLabel
-                        Spacer()
-                        Button {
-                            detect()
-                        } label: {
-                            Label("Detect", systemImage: "antenna.radiowaves.left.and.right")
+                    VStack(alignment: .leading, spacing: 6) {
+                        if let kind = state.kind {
+                            Text("Server type: \(kind.rawValue)")
+                                .font(.headline)
                         }
-                        .disabled(state.isDetecting)
+                        HStack {
+                            statusLabel
+                            Spacer()
+                            Button {
+                                detect()
+                            } label: {
+                                Label("Detect", systemImage: "antenna.radiowaves.left.and.right")
+                            }
+                            .disabled(state.isDetecting)
+                        }
                     }
                     .listRowSeparator(.hidden)
                 }
@@ -99,23 +106,15 @@ struct ServerDetailView: View {
                 Text("Not checked yet")
                     .foregroundStyle(.secondary)
             case .up(let count, let latency):
-                Text(upText(count: count, latency: latency))
+                // The server kind has its own row above, so this is just
+                // the count and the ping.
+                Text("\(count) models · \(latencyText(latency))")
                     .foregroundStyle(.green)
             case .down(let message):
                 Text(message)
                     .foregroundStyle(.red)
             }
         }
-    }
-
-    /// The "up" status line; the server kind leads when we know it, e.g.
-    /// "LM Studio · 5 models · 12 ms".
-    private func upText(count: Int, latency: Duration) -> String {
-        var text = "\(count) models · \(latencyText(latency))"
-        if let kind = state.kind {
-            text = "\(kind.rawValue) · \(text)"
-        }
-        return text
     }
 
     // MARK: - Detection
@@ -310,11 +309,12 @@ private struct ModelToastRow: View {
             HStack(alignment: .center, spacing: 8) {
                 // The model's info, stacked: name over specs over capabilities.
                 // Apple's hierarchical text: headline for the primary label,
-                // caption + secondary for the supporting lines.
+                // caption + secondary for the supporting lines — each bumped
+                // up 2pt from the macOS system sizes (13/10/10 → 15/12/12).
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Text(model.displayName ?? model.id)
-                            .font(.headline)
+                            .font(.system(size: 15, weight: .semibold))
                             .lineLimit(1)
                         if model.isEmbedding {
                             badge("embedded")
@@ -322,7 +322,7 @@ private struct ModelToastRow: View {
                     }
                     if !specParts.isEmpty {
                         Text(specParts.joined(separator: " · "))
-                            .font(.caption)
+                            .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
@@ -357,12 +357,12 @@ private struct ModelToastRow: View {
             if let result {
                 if let error = result.error {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption)
+                        .font(.system(size: 12))
                         .foregroundStyle(.red)
                 } else {
                     HStack(spacing: 8) {
                         Text(result.wrapperPath)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.system(size: 12, design: .monospaced))
                             .textSelection(.enabled)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -422,7 +422,7 @@ private struct ModelToastRow: View {
     /// A small muted capsule label, e.g. "embedded" or "vision".
     private func badge(_ text: String) -> some View {
         Text(text)
-            .font(.caption2)
+            .font(.system(size: 12))
             .padding(.horizontal, 6)
             .padding(.vertical, 1)
             .foregroundStyle(.secondary)
