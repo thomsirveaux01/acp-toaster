@@ -18,23 +18,23 @@ import AppKit
         }
     }
 
-    /// The credits block shown in the standard About panel, centered, with
-    /// the word "GitHub" itself as the link.
+    /// The credits block shown in the standard About panel, styled like
+    /// Running the Table's: centered small-system text with a little extra
+    /// line spacing, and the word "GitHub" itself as the link.
     private static let credits: NSAttributedString = {
-        let style = NSMutableParagraphStyle()
-        style.alignment = .center
-        let base = NSMutableAttributedString(
-            string: "Andrew Cunningham, 2026\n\nVibe-coded locally with open-weight Apache 2.0 models on Apple Silicon Macs\n\n",
-            attributes: [.paragraphStyle: style]
-        )
-        let link = NSAttributedString(
-            string: "GitHub",
-            attributes: [
-                .link: "https://github.com/thomsirveaux01/acp-toaster",
-                .paragraphStyle: style,
-            ]
-        )
-        base.append(link)
-        return base
+        let text = "Andrew Cunningham, 2026\n\nVibe-coded locally with open-weight Apache 2.0 models on Apple Silicon Macs\n\nGitHub"
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+        // Extra line space between the wrapped lines of the credits paragraph.
+        paragraph.lineSpacing = 2.0
+        let credits = NSMutableAttributedString(string: text, attributes: [
+            .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+            .paragraphStyle: paragraph,
+        ])
+        if let url = URL(string: "https://github.com/thomsirveaux01/acp-toaster") {
+            let range = (text as NSString).range(of: "GitHub")
+            credits.addAttributes([.link: url, .foregroundColor: NSColor.linkColor], range: range)
+        }
+        return credits
     }()
 }
