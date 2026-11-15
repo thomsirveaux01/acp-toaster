@@ -44,25 +44,31 @@ struct Server: Codable, Identifiable, Hashable {
     var baseURL: URL
     /// The SF Symbol shown in the sidebar and the detail header.
     var icon: String
+    /// Optional API key for servers that require auth. Nil means no
+    /// `Authorization` header is sent and no key is written to the config.
+    var apiKey: String?
 
-    init(id: UUID = UUID(), name: String, baseURL: URL, icon: String = ServerIcon.macDesktop.symbol) {
+    init(id: UUID = UUID(), name: String, baseURL: URL, icon: String = ServerIcon.macDesktop.symbol, apiKey: String? = nil) {
         self.id = id
         self.name = name
         self.baseURL = baseURL
         self.icon = icon
+        self.apiKey = apiKey
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, baseURL, icon
+        case id, name, baseURL, icon, apiKey
     }
 
-    /// Decodes a server; ones saved before icons existed get the default.
+    /// Decodes a server; ones saved before icons or keys existed get the
+    /// defaults.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         baseURL = try container.decode(URL.self, forKey: .baseURL)
         icon = try container.decodeIfPresent(String.self, forKey: .icon) ?? ServerIcon.macDesktop.symbol
+        apiKey = try container.decodeIfPresent(String.self, forKey: .apiKey)
     }
 
     /// `host:port`, for display.

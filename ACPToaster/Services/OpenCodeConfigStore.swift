@@ -75,7 +75,9 @@ struct OpenCodeConfigStore {
             "name": server.name,
             "options": [
                 "baseURL": server.baseURL.absoluteString,
-                "apiKey": "lm-studio",
+                // The real key when the server requires auth; a dummy value
+                // otherwise, since the SDK wants the field to exist.
+                "apiKey": server.apiKey ?? "lm-studio",
             ],
             "models": modelsDict,
         ]

@@ -92,26 +92,30 @@ struct ModelServerClient {
         let origin = Self.origin(of: server.baseURL)
 
         // 1. LM Studio's native v1 API carries the richest model metadata.
-        if let data = try? await get(origin.appendingPathComponent("api/v1/models")),
+        if let data = try? await get(origin.appendingPathComponent("api/v1/models"), apiKey: server.apiKey),
            let models = try? Self.decodeLMStudio(data) {
             return ModelList(models: models, kind: .lmStudio, latency: ContinuousClock.now - start)
         }
         // 2. Ollama's native tags endpoint.
-        if let data = try? await get(origin.appendingPathComponent("api/tags")),
+        if let data = try? await get(origin.appendingPathComponent("api/tags"), apiKey: server.apiKey),
            let models = try? Self.decodeOllama(data) {
             return ModelList(models: models, kind: .ollama, latency: ContinuousClock.now - start)
         }
         // 3. The OpenAI-compatible shape every server also speaks. The error
         //    from this call is the one that surfaces if the server is down.
-        let data = try await get(server.baseURL.appendingPathComponent("models"))
+        let data = try await get(server.baseURL.appendingPathComponent("models"), apiKey: server.apiKey)
         let models = try Self.decodeOpenAI(data)
         return ModelList(models: models, kind: .openAICompatible, latency: ContinuousClock.now - start)
     }
 
     /// A plain GET that throws ServerError on transport or HTTP failures.
-    private func get(_ url: URL) async throws -> Data {
+    /// Sends `Authorization: Bearer <key>` when the server has a key.
+    private func get(_ url: URL, apiKey: String?) async throws -> Data {
         var request = URLRequest(url: url, timeoutInterval: Self.timeout)
         request.httpMethod = "GET"
+        if let apiKey, !apiKey.isEmpty {
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
 
         let data: Data
         let response: URLResponse

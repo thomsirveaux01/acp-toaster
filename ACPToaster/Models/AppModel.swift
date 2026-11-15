@@ -42,7 +42,7 @@ final class AppModel {
     /// Validates and adds a server. Fails with a user-facing message when the
     /// name is empty, the address doesn't normalize, or the server already exists.
     @discardableResult
-    func addServer(name: String, address: String, icon: String) -> Result<Server, AppModelError> {
+    func addServer(name: String, address: String, icon: String, apiKey: String) -> Result<Server, AppModelError> {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
             return .failure(AppModelError(message: "Give the server a name."))
@@ -54,16 +54,16 @@ final class AppModel {
             let hostPort = baseURL.port.map { "\(baseURL.host ?? ""):\($0)" } ?? (baseURL.host ?? "")
             return .failure(AppModelError(message: "A server at \(hostPort) is already in your list."))
         }
-        let server = Server(name: trimmedName, baseURL: baseURL, icon: icon)
+        let server = Server(name: trimmedName, baseURL: baseURL, icon: icon, apiKey: Self.normalizedKey(apiKey))
         servers.append(server)
         return .success(server)
     }
 
-    /// Updates a server's name and address. Fails with a user-facing message
-    /// when the name is empty, the address doesn't normalize, or another
-    /// server already uses that address.
+    /// Updates a server's name, address, and API key. Fails with a user-facing
+    /// message when the name is empty, the address doesn't normalize, or
+    /// another server already uses that address.
     @discardableResult
-    func updateServer(_ id: UUID, name: String, address: String, icon: String) -> Result<Server, AppModelError> {
+    func updateServer(_ id: UUID, name: String, address: String, icon: String, apiKey: String) -> Result<Server, AppModelError> {
         guard let index = servers.firstIndex(where: { $0.id == id }) else {
             return .failure(AppModelError(message: "That server is no longer in your list."))
         }
@@ -81,7 +81,14 @@ final class AppModel {
         servers[index].name = trimmedName
         servers[index].baseURL = baseURL
         servers[index].icon = icon
+        servers[index].apiKey = Self.normalizedKey(apiKey)
         return .success(servers[index])
+    }
+
+    /// Trims the key and treats an empty one as "no auth".
+    private static func normalizedKey(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     /// Removes a server and any selections that referenced it.
