@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Main window: first-run setup, then a Screen-Sharing-style split view with
 /// the server list in the sidebar and the selected server's detail on the right.
@@ -37,6 +38,10 @@ struct ContentView: View {
     /// Whether the settings sheet is attached to the window.
     @State private var settingsShown = false
 
+    /// While the settings sheet is shown, a click anywhere outside it
+    /// (the parent window behind it) dismisses it, like Esc.
+    @State private var outsideClickMonitor: Any?
+
     var body: some View {
         Group {
             if setupComplete {
@@ -70,6 +75,23 @@ struct ContentView: View {
             SettingsView(updater: updater)
                 .onExitCommand { settingsShown = false }
         }
+        .onChange(of: settingsShown) { _, shown in
+            if shown {
+                // The sheet is the app's only sheet window, so a mouse-down on
+                // any other window is outside it. The click is swallowed so it
+                // doesn't also act on the controls behind the sheet.
+                outsideClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
+                    if event.window?.isSheet == false {
+                        settingsShown = false
+                        return nil
+                    }
+                    return event
+                }
+            } else {
+                removeOutsideClickMonitor()
+            }
+        }
+        .onDisappear { removeOutsideClickMonitor() }
         .environment(appModel)
     }
 
@@ -254,6 +276,13 @@ struct ContentView: View {
         guard let current = selectedServerID,
               !appModel.servers.contains(where: { $0.id == current }) else { return }
         selectedServerID = nil
+    }
+
+    /// Removes the outside-click monitor if one is installed.
+    private func removeOutsideClickMonitor() {
+        guard let monitor = outsideClickMonitor else { return }
+        NSEvent.removeMonitor(monitor)
+        outsideClickMonitor = nil
     }
 }
 
