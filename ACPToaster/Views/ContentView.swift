@@ -110,7 +110,7 @@ struct ContentView: View {
                     Image(systemName: "plus")
                         .frame(width: 28)
                 }
-                .help("Add a server")
+                .help("Add server")
                 Divider()
                     .frame(height: 16)
                 Button {

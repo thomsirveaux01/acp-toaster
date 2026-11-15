@@ -32,7 +32,7 @@ struct ServerEditorSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // macOS sheets have no title bar, so the title lives in the content.
-            Text(isEditing ? "Edit a server" : "Add a server")
+            Text(isEditing ? "Edit server" : "Add server")
                 .font(.headline)
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
