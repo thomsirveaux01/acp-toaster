@@ -11,6 +11,16 @@ struct BrewService {
         return nil
     }
 
+    /// Homebrew's version (e.g. "4.3.21"), or nil when brew isn't installed.
+    static func brewVersion() async -> String? {
+        guard let brew = brewPath() else { return nil }
+        let (status, stdout) = await run(brew, ["--version"])
+        guard status == 0 else { return nil }
+        // The first line is "Homebrew 4.3.21"; the version is its last token.
+        guard let firstLine = stdout.split(whereSeparator: \.isNewline).first else { return nil }
+        return firstLine.split(separator: " ").last.map(String.init)
+    }
+
     /// A running (or finished) `brew install opencode` process.
     final class Install {
         /// Combined stdout+stderr, one element per line.
@@ -83,6 +93,25 @@ struct BrewService {
 
     private static func brewDir(for brew: String) -> String {
         (brew as NSString).deletingLastPathComponent
+    }
+
+    /// Runs a process and captures its exit status and stdout.
+    /// Nonisolated so the blocking read happens off the main actor.
+    nonisolated private static func run(_ launchPath: String, _ arguments: [String]) async -> (status: Int32, stdout: String) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: launchPath)
+        process.arguments = arguments
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = Pipe() // keep stderr out of the captured output
+        do {
+            try process.run()
+        } catch {
+            return (-1, "")
+        }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        return (process.terminationStatus, String(data: data, encoding: .utf8) ?? "")
     }
 
     /// Reads the pipe to EOF, yielding one stream element per complete line.

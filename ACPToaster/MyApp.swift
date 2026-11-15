@@ -16,6 +16,12 @@ import AppKit
                 }
             }
         }
+
+        // The standard Settings window (⌘,): a normal titled window with the
+        // toolchain checkers.
+        Settings {
+            SettingsView()
+        }
     }
 
     /// The credits block shown in the standard About panel, styled like

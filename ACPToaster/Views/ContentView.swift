@@ -7,11 +7,10 @@ struct ContentView: View {
     @State private var appModel = AppModel()
 
     /// First-run setup is complete once OpenCode has been found at least once.
-    @State private var setupComplete = UserDefaults.standard.bool(forKey: SetupStepView.setupCompleteKey)
+    @State private var setupComplete = UserDefaults.standard.bool(forKey: SettingsView.setupCompleteKey)
 
     /// The server currently selected in the sidebar.
     @State private var selectedServerID: UUID?
-    @State private var showSetupSheet = false
 
     /// What the editor sheet is showing: a new server to add, or an existing
     /// one to edit. Driving the sheet with `.sheet(item:)` (instead of a
@@ -36,15 +35,11 @@ struct ContentView: View {
             if setupComplete {
                 mainFlow
             } else {
-                // First launch: setup owns the whole window until OpenCode is
-                // found, then the main flow appears in its place.
-                SetupStepView(onFound: { setupComplete = true })
-                    .padding(20)
+                // First launch: the settings checkers own the whole window
+                // until OpenCode is found, then the main flow appears in its
+                // place.
+                SettingsView(onFound: { setupComplete = true })
             }
-        }
-        .sheet(isPresented: $showSetupSheet) {
-            SetupStepView()
-                .frame(minWidth: 560, minHeight: 480)
         }
         .frame(minWidth: 640, minHeight: 480)
         .environment(appModel)
@@ -158,14 +153,12 @@ struct ContentView: View {
         }
     }
 
-    /// The completed first-run setup, tucked away behind a toolbar button.
+    /// The settings window, tucked away behind a toolbar button.
     private var setupButton: some View {
-        Button {
-            showSetupSheet = true
-        } label: {
+        SettingsLink {
             Image(systemName: "gearshape")
         }
-        .help("OpenCode setup")
+        .help("Settings")
     }
 
     /// Selects the first server on appear when nothing is selected.
