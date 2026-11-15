@@ -191,8 +191,18 @@ struct ModelServerClient {
         }
 
         let payload = try JSONDecoder().decode(Payload.self, from: data)
-        return payload.entries
-            .filter { !$0.key.isEmpty }
+        // When LM Link is active, the same model key can appear more than
+        // once — once for the local copy and once per linked device's copy.
+        // The public REST API doesn't flag which is which (that origin lives
+        // only in LM Studio's internal authenticated API), so collapse
+        // duplicates by key, keeping the first occurrence, so each model is
+        // exposed exactly once instead of once per device.
+        var seenKeys = Set<String>()
+        let uniqueEntries = payload.entries.filter { entry in
+            guard !entry.key.isEmpty else { return false }
+            return seenKeys.insert(entry.key).inserted
+        }
+        return uniqueEntries
             .map { entry in
                 var caps: Set<Capability> = []
                 if entry.capabilities?.vision == true { caps.insert(.vision) }
