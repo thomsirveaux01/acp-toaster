@@ -37,15 +37,15 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 28) {
-            toolRow(label: "Homebrew:", state: brewState, subtext: brewSubtext, error: nil) {
+            toolRow(label: "Homebrew:", state: brewState, caption: brewCaption, isError: false) {
                 brewButton
             }
-            toolRow(label: "OpenCode:", state: opencodeState, subtext: openCodeSubtext, error: openCodeInstallError) {
+            toolRow(label: "OpenCode:", state: opencodeState, caption: openCodeCaption, isError: openCodeCaptionIsError) {
                 openCodeButton
             }
         }
         .padding(28)
-        .frame(width: 480)
+        .frame(width: 520)
         .task { await check() }
         .onChange(of: scenePhase) {
             if scenePhase == .active {
@@ -58,13 +58,14 @@ struct SettingsView: View {
     // MARK: - Rows
 
     /// One Tailscale-style settings row: a right-aligned bold label, the
-    /// tool's status (with an optional caption or error underneath), and a
-    /// trailing button.
+    /// tool's status, a caption line, and a trailing button. The status and
+    /// caption areas have fixed sizes, so nothing moves while the check runs
+    /// and the results appear in place.
     private func toolRow<Trailing: View>(
         label: String,
         state: ToolState,
-        subtext: String?,
-        error: String?,
+        caption: String?,
+        isError: Bool,
         @ViewBuilder trailing: () -> Trailing
     ) -> some View {
         HStack(spacing: 12) {
@@ -73,34 +74,25 @@ struct SettingsView: View {
                 .frame(width: 100, alignment: .trailing)
             VStack(alignment: .leading, spacing: 4) {
                 statusLine(for: state)
-                if let subtext {
-                    Text(subtext)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                if let error {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
+                    .frame(width: 220, height: 18, alignment: .leading)
+                // Always render one caption line (blank when there's nothing
+                // to say) so the row's height stays constant.
+                Text(caption ?? " ")
+                    .font(.caption)
+                    .foregroundStyle(isError ? Color.red : Color.secondary)
             }
             Spacer()
             trailing()
         }
     }
 
-    /// The status line: a spinner while checking, a green check and version
-    /// when installed, a gray dot when not.
+    /// The status line. While checking it's empty — the check runs silently
+    /// and the result appears in the reserved space without moving anything.
     @ViewBuilder
     private func statusLine(for state: ToolState) -> some View {
         switch state {
         case .checking:
-            HStack(spacing: 6) {
-                ProgressView()
-                    .controlSize(.small)
-                Text("Checking…")
-                    .foregroundStyle(.secondary)
-            }
+            EmptyView()
         case .installed(let version):
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.circle.fill")
@@ -111,6 +103,7 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .lineLimit(1)
         case .notInstalled:
             HStack(spacing: 6) {
                 Image(systemName: "circle.fill")
@@ -120,20 +113,27 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Buttons
+    // MARK: - Captions
 
-    private var brewSubtext: String? {
-        guard !brewInstalled else { return nil }
+    private var brewCaption: String? {
+        guard brewMissing else { return nil }
         return brewCommandCopied
             ? "Copied — paste it into Terminal."
             : "The installer needs sudo, so Install copies the command — paste it into Terminal."
     }
 
-    private var openCodeSubtext: String? {
+    private var openCodeCaption: String? {
         if isInstallingOpenCode { return "Installing via Homebrew…" }
-        guard !openCodeInstalled else { return nil }
+        if let openCodeInstallError { return openCodeInstallError }
+        guard openCodeMissing else { return nil }
         return brewInstalled ? nil : "Install Homebrew first."
     }
+
+    private var openCodeCaptionIsError: Bool {
+        openCodeInstallError != nil
+    }
+
+    // MARK: - Buttons
 
     private var brewButton: some View {
         Button {
@@ -143,7 +143,8 @@ struct SettingsView: View {
         } label: {
             Text("Install")
         }
-        .disabled(brewInstalled)
+        // Grayed out while checking and when Homebrew is already installed.
+        .disabled(!brewMissing)
     }
 
     private var openCodeButton: some View {
@@ -161,7 +162,9 @@ struct SettingsView: View {
                 Text("Install")
             }
         }
-        .disabled(openCodeInstalled || isInstallingOpenCode || !brewInstalled)
+        // Grayed out while checking, while installing, when OpenCode is
+        // already installed, or when Homebrew is missing (it's the installer).
+        .disabled(!openCodeMissing || isInstallingOpenCode || !brewInstalled)
     }
 
     // MARK: - State helpers
@@ -173,6 +176,17 @@ struct SettingsView: View {
 
     private var openCodeInstalled: Bool {
         if case .installed = opencodeState { return true }
+        return false
+    }
+
+    /// True only once the check has completed and the tool is missing.
+    private var brewMissing: Bool {
+        if case .notInstalled = brewState { return true }
+        return false
+    }
+
+    private var openCodeMissing: Bool {
+        if case .notInstalled = opencodeState { return true }
         return false
     }
 
