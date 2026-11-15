@@ -70,13 +70,13 @@ struct ModelServerClient {
         var errorDescription: String? {
             switch self {
             case .unreachable(let detail):
-                UserMessages.unreachable(detail: detail)
+                "Can't reach this server — the machine may be asleep or off. (\(detail))"
             case .timedOut:
-                UserMessages.timedOut
+                "The server didn't respond in time."
             case .httpError(let status):
-                UserMessages.httpError(status: status)
+                "The server replied with an error (HTTP \(status))."
             case .badResponse(let detail):
-                UserMessages.badResponse(detail: detail)
+                "The server's response wasn't a valid model list. (\(detail))"
             }
         }
     }
