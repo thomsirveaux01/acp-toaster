@@ -21,7 +21,7 @@ enum ServerIcon: String, CaseIterable, Identifiable {
     /// The label shown in pickers and menus.
     var label: String {
         switch self {
-        case .macDesktop: "Mac Desktop"
+        case .macDesktop: "iMac"
         case .macPro: "Mac Pro"
         case .macStudio: "Mac Studio"
         case .macMini: "Mac mini"
