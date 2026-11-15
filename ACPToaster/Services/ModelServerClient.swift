@@ -70,13 +70,13 @@ struct ModelServerClient {
         var errorDescription: String? {
             switch self {
             case .unreachable(let detail):
-                ErrorMessages.unreachable(detail: detail)
+                UserMessages.unreachable(detail: detail)
             case .timedOut:
-                ErrorMessages.timedOut
+                UserMessages.timedOut
             case .httpError(let status):
-                ErrorMessages.httpError(status: status)
+                UserMessages.httpError(status: status)
             case .badResponse(let detail):
-                ErrorMessages.badResponse(detail: detail)
+                UserMessages.badResponse(detail: detail)
             }
         }
     }

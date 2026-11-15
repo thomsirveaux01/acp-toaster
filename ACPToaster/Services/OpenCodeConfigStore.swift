@@ -21,9 +21,9 @@ struct OpenCodeConfigStore {
 
         var errorDescription: String? {
             switch self {
-            case .unreadable: ErrorMessages.configUnreadable
-            case .invalidJSON: ErrorMessages.configInvalidJSON
-            case .writeFailed: ErrorMessages.configWriteFailed
+            case .unreadable: UserMessages.configUnreadable
+            case .invalidJSON: UserMessages.configInvalidJSON
+            case .writeFailed: UserMessages.configWriteFailed
             }
         }
     }

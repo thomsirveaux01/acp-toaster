@@ -39,7 +39,7 @@ struct ServerDetailView: View {
 
                         VStack(alignment: .leading, spacing: 6) {
                             if let kind = state.kind {
-                                Text("Server type: \(kind.rawValue)")
+                                Text(UserMessages.serverType(kind: kind.rawValue))
                                     .font(.headline)
                             }
                             HStack {
@@ -104,18 +104,18 @@ struct ServerDetailView: View {
             HStack(spacing: 8) {
                 ProgressView()
                     .controlSize(.small)
-                Text("Detecting…")
+                Text(UserMessages.detecting)
                     .foregroundStyle(.secondary)
             }
         } else {
             switch state.status {
             case .never:
-                Text("Not checked yet")
+                Text(UserMessages.notCheckedYet)
                     .foregroundStyle(.secondary)
             case .up(let count, let latency):
                 // The server kind has its own row above, so this is just
                 // the count and the ping.
-                Text("\(count) models · \(latencyText(latency))")
+                Text(UserMessages.modelsUp(count: count, latency: latencyText(latency)))
                     .foregroundStyle(.green)
             case .down(let message):
                 Text(message)
@@ -181,7 +181,7 @@ struct ServerDetailView: View {
     private func toast(_ model: ModelServerClient.ModelInfo) {
         guard toastingModelID == nil else { return }
         toastingModelID = model.id
-        statusMessage = ToastStatus(kind: .working, text: "Toasting \(model.displayName ?? model.id)…")
+        statusMessage = ToastStatus(kind: .working, text: UserMessages.toasting(name: model.displayName ?? model.id))
         Task { await toastAsync(model) }
     }
 
@@ -224,7 +224,7 @@ struct ServerDetailView: View {
         } else {
             // The wrapper path is already shown in the model's expanded row,
             // so the status bar just celebrates the toast.
-            var text = "Toasted!"
+            var text = UserMessages.toasted
             if expert.isFailure {
                 text += "  ·  \(expert.message)"
             }
@@ -259,9 +259,9 @@ struct ServerDetailView: View {
                 try FileManager.default.removeItem(atPath: path)
             }
             toasts[model.id] = nil
-            statusMessage = ToastStatus(kind: .success, text: "Deleted wrapper · \(path)")
+            statusMessage = ToastStatus(kind: .success, text: UserMessages.deletedWrapper(path: path))
         } catch {
-            statusMessage = ToastStatus(kind: .failure, text: ErrorMessages.deleteWrapperFailed(detail: error.localizedDescription))
+            statusMessage = ToastStatus(kind: .failure, text: UserMessages.deleteWrapperFailed(detail: error.localizedDescription))
         }
     }
 
@@ -276,7 +276,7 @@ struct ServerDetailView: View {
                 if let statusMessage {
                     statusView(statusMessage)
                 } else {
-                    Text("Ready")
+                    Text(UserMessages.ready)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()

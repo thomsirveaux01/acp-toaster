@@ -112,7 +112,7 @@ struct SettingsView: View {
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                Text("Installed")
+                Text(UserMessages.installed)
                 if let version {
                     Text("· \(version)")
                         .foregroundStyle(.secondary)
@@ -123,7 +123,7 @@ struct SettingsView: View {
             HStack(spacing: 6) {
                 Image(systemName: "circle.fill")
                     .foregroundStyle(.secondary)
-                Text("Not installed")
+                Text(UserMessages.notInstalled)
             }
         }
     }
@@ -133,15 +133,15 @@ struct SettingsView: View {
     private var brewCaption: String? {
         guard brewMissing else { return nil }
         return brewCommandCopied
-            ? "Copied — paste it into Terminal."
-            : "The installer needs sudo, so Install copies the command — paste it into Terminal."
+            ? UserMessages.brewCopiedCaption
+            : UserMessages.brewInstallCaption
     }
 
     private var openCodeCaption: String? {
-        if isInstallingOpenCode { return "Installing via Homebrew…" }
+        if isInstallingOpenCode { return UserMessages.installingOpenCode }
         if let openCodeInstallError { return openCodeInstallError }
         guard openCodeMissing else { return nil }
-        return brewInstalled ? nil : "Install Homebrew first."
+        return brewInstalled ? nil : UserMessages.installHomebrewFirst
     }
 
     private var openCodeCaptionIsError: Bool {
@@ -258,7 +258,7 @@ struct SettingsView: View {
         if install.exitStatus == 0 {
             await check()
         } else {
-            openCodeInstallError = ErrorMessages.opencodeInstallFailed(status: install.exitStatus)
+            openCodeInstallError = UserMessages.opencodeInstallFailed(status: install.exitStatus)
         }
     }
 }

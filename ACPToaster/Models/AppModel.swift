@@ -45,14 +45,14 @@ final class AppModel {
     func addServer(name: String, address: String, icon: String, apiKey: String) -> Result<Server, AppModelError> {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
-            return .failure(AppModelError(message: ErrorMessages.serverNameRequired))
+            return .failure(AppModelError(message: UserMessages.serverNameRequired))
         }
         guard let baseURL = Server.normalizedBaseURL(from: address) else {
-            return .failure(AppModelError(message: ErrorMessages.serverAddressInvalid))
+            return .failure(AppModelError(message: UserMessages.serverAddressInvalid))
         }
         if servers.contains(where: { $0.baseURL == baseURL }) {
             let hostPort = baseURL.port.map { "\(baseURL.host ?? ""):\($0)" } ?? (baseURL.host ?? "")
-            return .failure(AppModelError(message: ErrorMessages.serverDuplicate(hostPort: hostPort)))
+            return .failure(AppModelError(message: UserMessages.serverDuplicate(hostPort: hostPort)))
         }
         let server = Server(name: trimmedName, baseURL: baseURL, icon: icon, apiKey: Self.normalizedKey(apiKey))
         servers.append(server)
@@ -65,18 +65,18 @@ final class AppModel {
     @discardableResult
     func updateServer(_ id: UUID, name: String, address: String, icon: String, apiKey: String) -> Result<Server, AppModelError> {
         guard let index = servers.firstIndex(where: { $0.id == id }) else {
-            return .failure(AppModelError(message: ErrorMessages.serverMissing))
+            return .failure(AppModelError(message: UserMessages.serverMissing))
         }
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
-            return .failure(AppModelError(message: ErrorMessages.serverNameRequired))
+            return .failure(AppModelError(message: UserMessages.serverNameRequired))
         }
         guard let baseURL = Server.normalizedBaseURL(from: address) else {
-            return .failure(AppModelError(message: ErrorMessages.serverAddressInvalid))
+            return .failure(AppModelError(message: UserMessages.serverAddressInvalid))
         }
         if servers.contains(where: { $0.id != id && $0.baseURL == baseURL }) {
             let hostPort = baseURL.port.map { "\(baseURL.host ?? ""):\($0)" } ?? (baseURL.host ?? "")
-            return .failure(AppModelError(message: ErrorMessages.serverDuplicate(hostPort: hostPort)))
+            return .failure(AppModelError(message: UserMessages.serverDuplicate(hostPort: hostPort)))
         }
         servers[index].name = trimmedName
         servers[index].baseURL = baseURL

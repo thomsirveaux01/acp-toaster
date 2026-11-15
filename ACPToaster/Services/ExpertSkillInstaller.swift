@@ -32,9 +32,9 @@ struct ExpertSkillInstaller {
         /// A short line for the UI.
         var message: String {
             switch self {
-            case .installed: "Xcode expert references installed"
-            case .upToDate: "Xcode expert references up to date"
-            case .updated: "Xcode expert references updated (previous version backed up)"
+            case .installed: UserMessages.expertSkillInstalled
+            case .upToDate: UserMessages.expertSkillUpToDate
+            case .updated: UserMessages.expertSkillUpdated
             case .failed(let message): message
             }
         }
@@ -68,7 +68,7 @@ struct ExpertSkillInstaller {
             try fileManager.replaceItem(at: target, withItemAt: temp, backupItemName: nil, options: [], resultingItemURL: nil)
             return existing == nil ? .installed : .updated
         } catch {
-            return .failed(ErrorMessages.expertSkillFailed(detail: error.localizedDescription))
+            return .failed(UserMessages.expertSkillFailed(detail: error.localizedDescription))
         }
     }
 
