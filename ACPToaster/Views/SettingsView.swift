@@ -12,13 +12,26 @@ struct SettingsView: View {
     /// UserDefaults key marking first-run setup as complete.
     static let setupCompleteKey = "acptoaster.setupComplete"
 
+    /// UserDefaults keys for the last known tool states, so the window can
+    /// show them instantly on open and re-check in the background.
+    private static let brewCacheKey = "acptoaster.toolchain.brew"
+    private static let opencodeCacheKey = "acptoaster.toolchain.opencode"
+
+    init(onFound: @escaping () -> Void = {}) {
+        self.onFound = onFound
+        // Restore the last known results so the window shows them instantly;
+        // the background check confirms or updates them in place.
+        _brewState = State(initialValue: Self.cachedState(Self.brewCacheKey))
+        _opencodeState = State(initialValue: Self.cachedState(Self.opencodeCacheKey))
+    }
+
     /// Homebrew's installer needs sudo, which a GUI app should not prompt
     /// for, so the Homebrew "Install" button copies this one-liner instead.
     private static let brewInstallerCommand =
         "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
 
     /// The installation state of one tool.
-    private enum ToolState: Equatable {
+    private enum ToolState: Equatable, Codable {
         case checking
         case installed(version: String?)
         case notInstalled
@@ -68,7 +81,9 @@ struct SettingsView: View {
         isError: Bool,
         @ViewBuilder trailing: () -> Trailing
     ) -> some View {
-        HStack(spacing: 12) {
+        // Top-aligned, like the Tailscale settings: the label and the button
+        // line up with the status line, not the middle of the row.
+        HStack(alignment: .top, spacing: 12) {
             Text(label)
                 .fontWeight(.semibold)
                 .frame(width: 100, alignment: .trailing)
@@ -192,27 +207,40 @@ struct SettingsView: View {
 
     // MARK: - Actions
 
-    /// Checks both tools concurrently and reports the results.
+    /// Checks both tools concurrently and reports the results. The previous
+    /// results stay visible while the check runs, so nothing pops in.
     private func check() async {
-        brewState = .checking
-        opencodeState = .checking
-        brewCommandCopied = false
-        openCodeInstallError = nil
         async let brewVersion = BrewService.brewVersion()
         async let detection = OpencodeLocator().detect()
         let (version, result) = await (brewVersion, detection)
         brewState = version.map(ToolState.installed) ?? .notInstalled
+        Self.saveState(brewState, Self.brewCacheKey)
         switch result {
         case .found(_, let version):
             opencodeState = .installed(version: version)
         case .notFound:
             opencodeState = .notInstalled
         }
+        Self.saveState(opencodeState, Self.opencodeCacheKey)
         if openCodeInstalled {
             // First-run gate: OpenCode is present, so setup is complete.
             UserDefaults.standard.set(true, forKey: Self.setupCompleteKey)
             onFound()
         }
+    }
+
+    /// The last known state for a tool, or .checking on the very first run.
+    private static func cachedState(_ key: String) -> ToolState {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let state = try? JSONDecoder().decode(ToolState.self, from: data) else {
+            return .checking
+        }
+        return state
+    }
+
+    private static func saveState(_ state: ToolState, _ key: String) {
+        guard let data = try? JSONEncoder().encode(state) else { return }
+        UserDefaults.standard.set(data, forKey: key)
     }
 
     /// Runs `brew install opencode`, then re-checks.
