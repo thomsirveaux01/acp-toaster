@@ -4,10 +4,10 @@ import AppKit
 /// The app's settings: checkers for the local toolchain (Homebrew and
 /// OpenCode) with install buttons, and the app's own version with a passive
 /// update check. Shown both as the first-run gate inside the main window and
-/// as a sheet attached to it (⌘, / toolbar gear).
+/// as the standard Settings window (⌘, / toolbar gear).
 struct SettingsView: View {
     /// Called when OpenCode is found. In the first-run flow this advances
-    /// the app into the main window; the settings sheet ignores it.
+    /// the app into the main window; the Settings window ignores it.
     var onFound: () -> Void = {}
 
     /// The shared update checker, observed so the version row gains its

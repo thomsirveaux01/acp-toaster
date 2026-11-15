@@ -21,8 +21,12 @@ import AppKit
                 }
             }
         }
-        // Settings is a sheet on the main window (toolbar gear / ⌘,), not a
-        // separate Settings scene, so it stays attached to the app.
+
+        // The standard Settings window (⌘,): a floating panel with the
+        // toolchain checkers and the version row.
+        Settings {
+            SettingsView(updater: updater)
+        }
     }
 
     /// The credits block shown in the standard About panel, styled like
