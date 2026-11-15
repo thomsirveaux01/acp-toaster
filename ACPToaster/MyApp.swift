@@ -21,12 +21,8 @@ import AppKit
                 }
             }
         }
-
-        // The standard Settings window (⌘,): a normal titled window with the
-        // toolchain checkers.
-        Settings {
-            SettingsView()
-        }
+        // Settings is a sheet on the main window (toolbar gear / ⌘,), not a
+        // separate Settings scene, so it stays attached to the app.
     }
 
     /// The credits block shown in the standard About panel, styled like

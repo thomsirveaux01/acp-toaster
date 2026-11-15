@@ -65,7 +65,11 @@ final class UpdateChecker: ObservableObject {
         try await defaultDownload(url, name)
     }
     var openFile: (URL) -> Void = { NSWorkspace.shared.open($0) }
-    private(set) var promptedRelease: Release?
+
+    /// The newest release found to be newer than the running version. Kept
+    /// even after the prompt is dismissed, so the settings page can offer a
+    /// Download button without re-triggering the prompt.
+    @Published private(set) var availableUpdate: Release?
 
     let currentVersion: String
     private let defaults: UserDefaults
@@ -91,20 +95,22 @@ final class UpdateChecker: ObservableObject {
         do {
             release = try await latestRelease()
         } catch {
-            promptedRelease = nil
+            // Keep any previously known release: a dead network is not
+            // evidence that the update went away.
             if userInitiated { prompt = .checkFailed }
             return
         }
 
         let tag = Self.normalizedTag(release.tagName)
         guard !tag.isEmpty, Self.isNewer(tag, than: currentVersion) else {
-            promptedRelease = nil
+            availableUpdate = nil
             if userInitiated { prompt = .upToDate }
             return
         }
-        // "Skip This Version" silences that tag only; a newer one re-prompts.
+        availableUpdate = release
+        // "Skip This Version" silences the prompt only; the settings page
+        // still shows the release with its Download button.
         if !userInitiated, tag == defaults.string(forKey: Self.skippedVersionKey) { return }
-        promptedRelease = release
         prompt = .available(version: tag, notes: release.notes.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
@@ -118,8 +124,21 @@ final class UpdateChecker: ObservableObject {
     /// Downloads the prompted DMG to ~/Downloads and opens it (mounts, Finder
     /// window). Any failure falls back to the release page — never dead-end.
     func downloadPromptedUpdate() async {
-        guard case .available = prompt, let release = promptedRelease else { return }
+        guard case .available = prompt, let release = availableUpdate else { return }
         prompt = nil
+        await download(release)
+    }
+
+    /// The settings page's Download button: downloads the newest known
+    /// release, clearing the prompt so the main window's sheet does not
+    /// appear afterwards.
+    func downloadAvailableUpdate() async {
+        guard let release = availableUpdate else { return }
+        prompt = nil
+        await download(release)
+    }
+
+    private func download(_ release: Release) async {
         guard let dmg = release.dmgURL else {
             openFile(release.htmlURL)
             return

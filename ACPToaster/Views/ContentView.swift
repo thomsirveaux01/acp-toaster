@@ -34,6 +34,9 @@ struct ContentView: View {
     }
     @State private var editorSheet: EditorSheet?
 
+    /// Whether the settings sheet is attached to the window.
+    @State private var settingsShown = false
+
     var body: some View {
         Group {
             if setupComplete {
@@ -42,7 +45,7 @@ struct ContentView: View {
                 // First launch: the settings checkers own the whole window
                 // until OpenCode is found, then the main flow appears in its
                 // place.
-                SettingsView(onFound: { setupComplete = true })
+                SettingsView(onFound: { setupComplete = true }, updater: updater)
             }
         }
         .frame(minWidth: 640, minHeight: 480)
@@ -61,6 +64,12 @@ struct ContentView: View {
                                  onLater: { updater.prompt = nil })
             }
         }
+        // Settings as a sheet on the main window instead of a separate panel,
+        // so it stays attached to the app. Esc closes it.
+        .sheet(isPresented: $settingsShown) {
+            SettingsView(updater: updater)
+                .onExitCommand { settingsShown = false }
+        }
         .environment(appModel)
     }
 
@@ -75,7 +84,10 @@ struct ContentView: View {
 
     private var updateShown: Binding<Bool> {
         Binding(get: {
-            if case .available = updater.prompt { return true }
+            // Suppressed while the settings sheet is open: its version row
+            // shows the same state with a Download button, and two sheets on
+            // one view would fight. It appears once the sheet closes.
+            if case .available = updater.prompt { return !settingsShown }
             return false
         }, set: { if !$0 { updater.prompt = nil } })
     }
@@ -217,12 +229,16 @@ struct ContentView: View {
         }
     }
 
-    /// The settings window, tucked away behind a toolbar button.
+    /// The settings sheet, tucked away behind a toolbar button. ⌘, still
+    /// works now that there is no separate Settings scene.
     private var setupButton: some View {
-        SettingsLink {
+        Button {
+            settingsShown = true
+        } label: {
             Image(systemName: "gearshape")
         }
         .help("Settings")
+        .keyboardShortcut(",", modifiers: .command)
     }
 
     /// Selects the first server on appear when nothing is selected.

@@ -2,12 +2,17 @@ import SwiftUI
 import AppKit
 
 /// The app's settings: checkers for the local toolchain (Homebrew and
-/// OpenCode) with install buttons. Shown both as the first-run gate inside
-/// the main window and as the standard Settings window (⌘, / toolbar gear).
+/// OpenCode) with install buttons, and the app's own version with a passive
+/// update check. Shown both as the first-run gate inside the main window and
+/// as a sheet attached to it (⌘, / toolbar gear).
 struct SettingsView: View {
     /// Called when OpenCode is found. In the first-run flow this advances
-    /// the app into the main window; the Settings window ignores it.
+    /// the app into the main window; the settings sheet ignores it.
     var onFound: () -> Void = {}
+
+    /// The shared update checker, observed so the version row gains its
+    /// Download button when a check finds a newer release.
+    @ObservedObject var updater: UpdateChecker
 
     /// UserDefaults key marking first-run setup as complete.
     static let setupCompleteKey = "acptoaster.setupComplete"
@@ -17,8 +22,10 @@ struct SettingsView: View {
     private static let brewCacheKey = "acptoaster.toolchain.brew"
     private static let opencodeCacheKey = "acptoaster.toolchain.opencode"
 
-    init(onFound: @escaping () -> Void = {}) {
+    init(onFound: @escaping () -> Void = {},
+         updater: UpdateChecker) {
         self.onFound = onFound
+        self._updater = ObservedObject(wrappedValue: updater)
         // Restore the last known results so the window shows them instantly;
         // the background check confirms or updates them in place.
         _brewState = State(initialValue: Self.cachedState(Self.brewCacheKey))
@@ -56,10 +63,17 @@ struct SettingsView: View {
             toolRow(label: "OpenCode:", state: opencodeState, caption: openCodeCaption, isError: openCodeCaptionIsError) {
                 openCodeButton
             }
+            versionRow
         }
         .padding(28)
         .frame(width: 520)
-        .task { await check() }
+        .task {
+            await check()
+            // Passive update check: silent and throttled to once a day
+            // inside the checker; the result shows up on the version row as
+            // a Download button when a newer release exists.
+            await updater.check(userInitiated: false)
+        }
         .onChange(of: scenePhase) {
             if scenePhase == .active {
                 Task { await check() }
@@ -126,6 +140,52 @@ struct SettingsView: View {
                 Text("Not installed")
             }
         }
+    }
+
+    /// The app's own version, laid out like the tool rows. When the passive
+    /// check has found a newer release, a caption names it and a Download
+    /// button appears at the trailing edge.
+    private var versionRow: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text("Version:")
+                .fontWeight(.semibold)
+                .frame(width: 100, alignment: .trailing)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(updater.currentVersion)
+                    if let build = Self.buildVersion {
+                        Text("· build \(build)")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .lineLimit(1)
+                .frame(width: 220, height: 18, alignment: .leading)
+                // Always render one caption line (blank when there's nothing
+                // to say) so the row's height stays constant.
+                Text(updateCaption ?? " ")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if updater.availableUpdate != nil {
+                Button("Download") {
+                    Task { await updater.downloadAvailableUpdate() }
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+    }
+
+    /// The caption under the version: names the newer release when one is
+    /// known to exist, regardless of whether the prompt was dismissed.
+    private var updateCaption: String? {
+        guard let release = updater.availableUpdate else { return nil }
+        return "Version \(UpdateChecker.normalizedTag(release.tagName)) is available."
+    }
+
+    /// The build number (CFBundleVersion), for the "· build 21" suffix.
+    private static var buildVersion: String? {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String
     }
 
     // MARK: - Captions
@@ -264,5 +324,5 @@ struct SettingsView: View {
 }
 
 #Preview {
-    SettingsView()
+    SettingsView(updater: UpdateChecker())
 }
