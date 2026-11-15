@@ -6,6 +6,10 @@ struct ContentView: View {
     /// Shared app state, owned by this view.
     @State private var appModel = AppModel()
 
+    /// The update checker, owned by the App so the menu and the window share it.
+    /// Defaulted so the preview compiles without owning one.
+    @ObservedObject var updater: UpdateChecker = UpdateChecker()
+
     /// First-run setup is complete once OpenCode has been found at least once.
     @State private var setupComplete = UserDefaults.standard.bool(forKey: SettingsView.setupCompleteKey)
 
@@ -42,7 +46,67 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 640, minHeight: 480)
+        // Silent launch check, throttled to once a day inside the checker.
+        .task { await updater.check(userInitiated: false) }
+        // The two status popups ride the stock alert; the available-prompt is a
+        // sheet because alerts cannot scroll long release notes.
+        .alert(alertTitle, isPresented: statusShown, actions: { alertButtons }, message: {
+            Text(alertMessage)
+        })
+        .sheet(isPresented: updateShown) {
+            if case let .available(version, notes) = updater.prompt {
+                UpdatePromptView(version: version, notes: notes,
+                                 onDownload: { Task { await updater.downloadPromptedUpdate() } },
+                                 onSkip: { updater.skipPromptedVersion() },
+                                 onLater: { updater.prompt = nil })
+            }
+        }
         .environment(appModel)
+    }
+
+    // MARK: - Update prompt
+
+    private var statusShown: Binding<Bool> {
+        Binding(get: {
+            if case .available = updater.prompt { return false }
+            return updater.prompt != nil
+        }, set: { if !$0 { updater.prompt = nil } })
+    }
+
+    private var updateShown: Binding<Bool> {
+        Binding(get: {
+            if case .available = updater.prompt { return true }
+            return false
+        }, set: { if !$0 { updater.prompt = nil } })
+    }
+
+    private var alertTitle: String {
+        switch updater.prompt {
+        case .available: ""
+        case .upToDate: "You’re Up to Date"
+        case .checkFailed: "Update Check Failed"
+        case nil: ""
+        }
+    }
+
+    private var alertMessage: String {
+        switch updater.prompt {
+        case .available:
+            return ""
+        case .upToDate:
+            return "Version \(updater.currentVersion) is the latest release."
+        case .checkFailed:
+            // Vague on purpose: covers dead networks, rate limits, and a 404
+            // (no release published yet) alike.
+            return "Couldn't check for updates. Try again later."
+        case nil:
+            return ""
+        }
+    }
+
+    @ViewBuilder
+    private var alertButtons: some View {
+        Button("OK", role: .cancel) {}
     }
 
     /// The split window shown after first-run setup.
@@ -174,6 +238,57 @@ struct ContentView: View {
         guard let current = selectedServerID,
               !appModel.servers.contains(where: { $0.id == current }) else { return }
         selectedServerID = nil
+    }
+}
+
+/// Update-available sheet: one-line announcement, bulleted release notes
+/// capped at a scrollable height so a long list cannot break the window,
+/// then the actions (Download is the default button).
+struct UpdatePromptView: View {
+    let version: String
+    let notes: String
+    var onDownload: () -> Void
+    var onSkip: () -> Void
+    var onLater: () -> Void
+
+    // GitHub note bodies are markdown bullets; the dialog renders real ones.
+    var bullets: [String] {
+        notes.split(separator: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .map { $0.hasPrefix("- ") ? String($0.dropFirst(2)) : $0 }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Version \(version) is available!")
+                .font(.headline)
+            if !bullets.isEmpty {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(bullets, id: \.self) { line in
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Text("•").foregroundStyle(.secondary)
+                                Text(line)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 220)
+            }
+            HStack {
+                Spacer()
+                Button("Later", action: onLater)
+                    .keyboardShortcut(.cancelAction)
+                Button("Skip This Version", action: onSkip)
+                Button("Download", action: onDownload)
+                    .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(16)
+        .frame(width: 420)
     }
 }
 

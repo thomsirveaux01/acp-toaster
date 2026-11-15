@@ -2,9 +2,11 @@ import SwiftUI
 import AppKit
 
 @main struct MyApp: App {
+    @StateObject private var updater = UpdateChecker()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(updater: updater)
         }
         .defaultSize(width: 720, height: 520)
         .commands {
@@ -13,6 +15,9 @@ import AppKit
             CommandGroup(replacing: .appInfo) {
                 Button("About ACP Toaster") {
                     NSApplication.shared.orderFrontStandardAboutPanel(options: [.credits: Self.credits])
+                }
+                Button("Check for Updates…") {
+                    Task { await updater.check(userInitiated: true) }
                 }
             }
         }
