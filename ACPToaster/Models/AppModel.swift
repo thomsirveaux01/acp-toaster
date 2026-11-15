@@ -48,7 +48,7 @@ final class AppModel {
             return .failure(AppModelError(message: "Give the server a name."))
         }
         guard let baseURL = Server.normalizedBaseURL(from: address) else {
-            return .failure(AppModelError(message: "That address doesn't look right. Use host and port, like 127.0.0.1:1235."))
+            return .failure(AppModelError(message: "Use valid hostname or port, like 127.0.0.1:1235."))
         }
         if servers.contains(where: { $0.baseURL == baseURL }) {
             let hostPort = baseURL.port.map { "\(baseURL.host ?? ""):\($0)" } ?? (baseURL.host ?? "")
@@ -72,7 +72,7 @@ final class AppModel {
             return .failure(AppModelError(message: "Give the server a name."))
         }
         guard let baseURL = Server.normalizedBaseURL(from: address) else {
-            return .failure(AppModelError(message: "That address doesn't look right. Use host and port, like 127.0.0.1:1235."))
+            return .failure(AppModelError(message: "Use valid hostname or port, like 127.0.0.1:1235."))
         }
         if servers.contains(where: { $0.id != id && $0.baseURL == baseURL }) {
             let hostPort = baseURL.port.map { "\(baseURL.host ?? ""):\($0)" } ?? (baseURL.host ?? "")

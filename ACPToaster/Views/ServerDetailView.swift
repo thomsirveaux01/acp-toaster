@@ -115,7 +115,7 @@ struct ServerDetailView: View {
             case .up(let count, let latency):
                 // The server kind has its own row above, so this is just
                 // the count and the ping.
-                Text("\(count) models · \(latencyText(latency))")
+                Text("\(count) models · Ping: \(latencyText(latency))")
                     .foregroundStyle(.green)
             case .down(let message):
                 Text(message)

@@ -21,9 +21,9 @@ struct OpenCodeConfigStore {
 
         var errorDescription: String? {
             switch self {
-            case .unreadable: "Couldn't read the OpenCode config file."
-            case .invalidJSON: "The OpenCode config file isn't valid JSON, so it was left unchanged."
-            case .writeFailed: "Couldn't write the OpenCode config file."
+            case .unreadable: "Couldn't read OpenCode config file."
+            case .invalidJSON: "OpenCode config file isn't valid JSON, so it was left unchanged."
+            case .writeFailed: "Couldn't write OpenCode config file."
             }
         }
     }

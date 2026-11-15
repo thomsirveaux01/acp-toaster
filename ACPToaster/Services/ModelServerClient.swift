@@ -70,7 +70,7 @@ struct ModelServerClient {
         var errorDescription: String? {
             switch self {
             case .unreachable(let detail):
-                "Can't reach this server — the machine may be asleep or off. (\(detail))"
+                "Can't reach this server. (\(detail))"
             case .timedOut:
                 "The server didn't respond in time."
             case .httpError(let status):
