@@ -74,7 +74,7 @@ struct BrewService {
         do {
             try process.run()
         } catch {
-            continuation.yield("Failed to start brew: \(error.localizedDescription)")
+            continuation.yield(ErrorMessages.brewStartFailed(detail: error.localizedDescription))
             continuation.finish()
             return Install(process: process, status: status, lines: stream)
         }

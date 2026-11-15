@@ -258,7 +258,7 @@ struct SettingsView: View {
         if install.exitStatus == 0 {
             await check()
         } else {
-            openCodeInstallError = "Install failed (exit status \(install.exitStatus))."
+            openCodeInstallError = ErrorMessages.opencodeInstallFailed(status: install.exitStatus)
         }
     }
 }

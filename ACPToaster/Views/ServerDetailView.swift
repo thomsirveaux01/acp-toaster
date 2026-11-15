@@ -139,6 +139,7 @@ struct ServerDetailView: View {
         do {
             let list = try await ModelServerClient().fetchModels(from: server)
             state.models = list.models
+            restoreToastedModels(list.models)
             state.kind = list.kind
             state.status = .up(count: list.models.count, latency: list.latency)
         } catch is CancellationError {
@@ -161,6 +162,7 @@ struct ServerDetailView: View {
         do {
             let list = try await ModelServerClient().fetchModels(from: server)
             state.models = list.models
+            restoreToastedModels(list.models)
             state.kind = list.kind
             state.status = .up(count: list.models.count, latency: list.latency)
         } catch is CancellationError {
@@ -232,6 +234,21 @@ struct ServerDetailView: View {
         toastingModelID = nil
     }
 
+    /// Restores the "toasted" state for any model whose wrapper script already
+    /// exists on disk, so models toasted in a previous session still show their
+    /// expanded row (wrapper path, copy, delete) when the app reopens. The disk
+    /// is the source of truth; toasts already in memory (e.g. a fresh one) win.
+    private func restoreToastedModels(_ models: [ModelServerClient.ModelInfo]) {
+        let fileManager = FileManager.default
+        for model in models where toasts[model.id] == nil {
+            let selection = AppModel.ModelSelection(serverID: server.id, modelID: model.id, displayName: model.displayName)
+            let path = WrapperGenerator.wrapperPath(for: selection, server: server, homeDir: NSHomeDirectory())
+            if fileManager.fileExists(atPath: path) {
+                toasts[model.id] = WrapperGenerator.Result(selection: selection, wrapperPath: path, created: false, error: nil)
+            }
+        }
+    }
+
     /// Deletes a toasted model's wrapper script and collapses its row back to
     /// just the model name and Toast button.
     private func deleteWrapper(_ model: ModelServerClient.ModelInfo) {
@@ -244,7 +261,7 @@ struct ServerDetailView: View {
             toasts[model.id] = nil
             statusMessage = ToastStatus(kind: .success, text: "Deleted wrapper · \(path)")
         } catch {
-            statusMessage = ToastStatus(kind: .failure, text: "Couldn't delete wrapper: \(error.localizedDescription)")
+            statusMessage = ToastStatus(kind: .failure, text: ErrorMessages.deleteWrapperFailed(detail: error.localizedDescription))
         }
     }
 

@@ -68,7 +68,7 @@ struct ExpertSkillInstaller {
             try fileManager.replaceItem(at: target, withItemAt: temp, backupItemName: nil, options: [], resultingItemURL: nil)
             return existing == nil ? .installed : .updated
         } catch {
-            return .failed("Couldn't install the Xcode expert skill: \(error.localizedDescription)")
+            return .failed(ErrorMessages.expertSkillFailed(detail: error.localizedDescription))
         }
     }
 

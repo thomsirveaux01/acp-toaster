@@ -44,12 +44,22 @@ struct WrapperGenerator {
         return slug.isEmpty ? "server" : slug
     }
 
-    /// Writes the wrapper for one (server, model) pair into `~/bin`.
-    func generate(for selection: AppModel.ModelSelection, server: Server, opencodePath: String, homeDir: String) -> Result {
+    /// The deterministic path of the wrapper for one (server, model) pair,
+    /// under `~/bin`. Used both to write the wrapper and to detect one that
+    /// already exists, so models toasted in a previous session restore.
+    static func wrapperPath(for selection: AppModel.ModelSelection, server: Server, homeDir: String) -> String {
         let providerID = Self.providerID(for: server)
         let fileName = "opencode-acp-\(providerID)-\(Self.slug(selection.modelID)).sh"
         let binDir = (homeDir as NSString).appendingPathComponent("bin")
-        let wrapperPath = (binDir as NSString).appendingPathComponent(fileName)
+        return (binDir as NSString).appendingPathComponent(fileName)
+    }
+
+    /// Writes the wrapper for one (server, model) pair into `~/bin`.
+    func generate(for selection: AppModel.ModelSelection, server: Server, opencodePath: String, homeDir: String) -> Result {
+        let providerID = Self.providerID(for: server)
+        let wrapperPath = Self.wrapperPath(for: selection, server: server, homeDir: homeDir)
+        let fileName = (wrapperPath as NSString).lastPathComponent
+        let binDir = (homeDir as NSString).appendingPathComponent("bin")
 
         do {
             let fileManager = FileManager.default
