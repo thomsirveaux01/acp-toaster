@@ -5,10 +5,10 @@
 <h1 align="center">ACP Toaster</h1>
 
 <p align="center">
-    A macOS app that helps connect third-party coding agents to Xcode 27 using OpenCode and Apple's Agent Client Protocol (ACP).
+    A macOS app that helps connect third-party coding agents to Xcode 27 using OpenCode and the Agent Client Protocol (ACP).
 </p>
 <p align="center">
-    Compatible with Apple Silicon Macs running Xcode 27 on macOS 26 Tahoe or macOS 27 Golden Gate. 
+    Compatible with Apple Silicon Macs running Xcode 27 on macOS 26.6 Tahoe or later.
 </p>
 
 ## How it works

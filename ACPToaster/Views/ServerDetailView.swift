@@ -30,9 +30,6 @@ struct ServerDetailView: View {
                             if let kind = state.kind {
                                 Text("Server type: \(kind.rawValue)")
                                     .font(.headline)
-                                Text("In Xcode 27, navigate to the Intelligence settings, click Add an Agent, and paste the wrapper into the Executable field.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
                             }
                             HStack {
                                 statusLabel
@@ -43,6 +40,11 @@ struct ServerDetailView: View {
                                     Label("Detect", systemImage: "antenna.radiowaves.left.and.right")
                                 }
                                 .disabled(state.isDetecting)
+                            }
+                            if state.kind != nil {
+                                Text("In Xcode 27, navigate to the Intelligence settings, click Add an Agent, and paste the wrapper into the Executable field.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
