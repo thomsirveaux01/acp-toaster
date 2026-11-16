@@ -90,6 +90,14 @@ struct OpenCodeConfigStore {
         providers[providerID] = entry
         config["provider"] = providers
 
+        // Pin the toasted model as OpenCode's default. The wrapper re-pins it
+        // on every launch, but its sed only replaces an existing "model" key;
+        // a fresh config has none, so without this the session would start on
+        // whatever model OpenCode happens to default to.
+        if let selection = models.first {
+            config["model"] = "\(providerID)/\(selection.modelID)"
+        }
+
         let data: Data
         do {
             data = try JSONSerialization.data(withJSONObject: config, options: [.prettyPrinted, .sortedKeys])

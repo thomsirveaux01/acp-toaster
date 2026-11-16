@@ -87,7 +87,14 @@ struct WrapperGenerator {
 
         CFG="$HOME/.config/opencode/opencode.json"
         if [ -f "$CFG" ]; then
-          sed -i '' 's/"model"[[:space:]]*:[[:space:]]*"[^"]*"/"model": "\(escapedPin)"/' "$CFG"
+          if grep -q '"model"' "$CFG"; then
+            sed -i '' 's/"model"[[:space:]]*:[[:space:]]*"[^"]*"/"model": "\(escapedPin)"/' "$CFG"
+          else
+            # No "model" key to replace (e.g. a config OpenCode itself wrote);
+            # insert one after the opening brace. In pretty-printed JSON only
+            # the top-level brace sits alone on its line.
+            sed -i '' 's/^{$/{\\n  "model": "\(escapedPin)",/' "$CFG"
+          fi
         fi
 
         exec "\(opencodePath)" acp "$@"
