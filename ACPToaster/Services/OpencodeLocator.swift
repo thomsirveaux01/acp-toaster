@@ -1,16 +1,12 @@
 import Foundation
 
-/// Detects an existing OpenCode installation on this machine.
 struct OpencodeLocator {
     enum Detection {
         case found(path: String, version: String?)
         case notFound
     }
 
-    /// Directories checked before falling back to npm's global root and the
-    /// user's shell PATH: Homebrew (both prefixes), the official curl
-    /// installer (~/.opencode/bin, where opencode.ai/v2/install puts it),
-    /// and the generic user bin.
+    /// Directories checked before the npm and shell-PATH fallbacks; `~/.opencode/bin` is where the official curl installer puts opencode.
     private static let knownPaths: [String] = [
         "/opt/homebrew/bin/opencode",
         "/usr/local/bin/opencode",
@@ -18,8 +14,6 @@ struct OpencodeLocator {
         NSHomeDirectory() + "/.local/bin/opencode",
     ]
 
-    /// Finds an OpenCode binary, if one is installed — via Homebrew, npm,
-    /// the official curl installer, or anywhere else on the shell PATH.
     func detect() async -> Detection {
         for path in Self.knownPaths where isExecutable(path) {
             return .found(path: path, version: await Self.version(at: path))
@@ -36,9 +30,7 @@ struct OpencodeLocator {
         return .notFound
     }
 
-    /// Asks the user's login shell where npm's global root is, so an
-    /// npm-installed OpenCode is found even when its bin dir isn't on PATH.
-    /// Nil when npm itself isn't installed.
+    /// Asks the login shell where npm's global root is; nil when npm isn't installed.
     nonisolated private static func npmGlobalLookup() async -> String? {
         let (status, stdout) = await run("/bin/zsh", ["-lc", "npm prefix -g 2>/dev/null"])
         guard status == 0 else { return nil }
@@ -56,7 +48,6 @@ struct OpencodeLocator {
             && FileManager.default.isExecutableFile(atPath: path)
     }
 
-    /// Asks the user's login shell where `opencode` lives.
     nonisolated private static func shellLookup() async -> String? {
         let (status, stdout) = await run("/bin/zsh", ["-lc", "command -v opencode"])
         guard status == 0 else { return nil }
@@ -68,7 +59,6 @@ struct OpencodeLocator {
         return line
     }
 
-    /// Runs `<path> --version` and returns the first non-empty stdout line.
     nonisolated private static func version(at path: String) async -> String? {
         let (status, stdout) = await run(path, ["--version"])
         guard status == 0 else { return nil }
@@ -78,8 +68,7 @@ struct OpencodeLocator {
             .map { $0.trimmingCharacters(in: .whitespaces) }
     }
 
-    /// Runs a process and captures its exit status and stdout.
-    /// Nonisolated so the blocking read happens off the main actor.
+    /// Runs a process, capturing exit status and stdout; nonisolated so the blocking read stays off the main actor.
     nonisolated private static func run(_ launchPath: String, _ arguments: [String]) async -> (status: Int32, stdout: String) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: launchPath)

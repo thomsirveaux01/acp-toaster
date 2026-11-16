@@ -1,25 +1,19 @@
 import Foundation
 
-/// Writes the per-model ACP wrapper scripts that Xcode launches in place of
-/// raw `opencode acp`. The wrapper fixes the sanitized environment Xcode gives
-/// agents, pins the model in the OpenCode config, logs the launch, and execs
-/// the real binary.
+/// Writes the per-model ACP wrapper scripts Xcode launches in place of raw `opencode acp`: they fix Xcode's sanitized environment, pin the model in the OpenCode config, and exec the real binary.
 struct WrapperGenerator {
-    /// The result of generating one wrapper.
     struct Result: Identifiable {
         let selection: AppModel.ModelSelection
         /// Absolute path to the wrapper script, for pasting into Xcode.
         let wrapperPath: String
         /// True when the script didn't exist before this run.
         let created: Bool
-        /// A user-facing failure message, if generation failed.
         let error: String?
 
         var id: String { selection.id }
     }
 
-    /// Lowercases and collapses runs of non-alphanumerics into a single `-`.
-    /// "Next box" → "next-box", "qwen3.8-27b" → "qwen3-8-27b".
+    /// Lowercases and collapses non-alphanumerics into single `-`: "qwen3.8-27b" → "qwen3-8-27b".
     static func slug(_ text: String) -> String {
         var slug = ""
         var pendingSeparator = false
@@ -44,9 +38,7 @@ struct WrapperGenerator {
         return slug.isEmpty ? "server" : slug
     }
 
-    /// The deterministic path of the wrapper for one (server, model) pair,
-    /// under `~/bin`. Used both to write the wrapper and to detect one that
-    /// already exists, so models toasted in a previous session restore.
+    /// The deterministic wrapper path for one (server, model) pair; used to write the wrapper and to restore toasted models from disk.
     static func wrapperPath(for selection: AppModel.ModelSelection, server: Server, homeDir: String) -> String {
         let providerID = Self.providerID(for: server)
         let fileName = "opencode-acp-\(providerID)-\(Self.slug(selection.modelID)).sh"
@@ -54,7 +46,6 @@ struct WrapperGenerator {
         return (binDir as NSString).appendingPathComponent(fileName)
     }
 
-    /// Writes the wrapper for one (server, model) pair into `~/bin`.
     func generate(for selection: AppModel.ModelSelection, server: Server, opencodePath: String, homeDir: String) -> Result {
         let providerID = Self.providerID(for: server)
         let wrapperPath = Self.wrapperPath(for: selection, server: server, homeDir: homeDir)
@@ -106,7 +97,7 @@ struct WrapperGenerator {
         """
     }
 
-    /// Escapes `\`, `&`, and `/` for use in a sed replacement string.
+    /// Escapes `\`, `&`, and `/` for a sed replacement string.
     private static func sedEscape(_ text: String) -> String {
         var escaped = ""
         for character in text {

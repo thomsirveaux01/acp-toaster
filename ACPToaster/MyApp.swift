@@ -10,8 +10,6 @@ import AppKit
         }
         .defaultSize(width: 720, height: 520)
         .commands {
-            // The standard About panel (icon, name, version) with a credits
-            // block underneath, including a clickable GitHub link.
             CommandGroup(replacing: .appInfo) {
                 Button("About ACP Toaster") {
                     NSApplication.shared.orderFrontStandardAboutPanel(options: [.credits: Self.credits])
@@ -22,21 +20,17 @@ import AppKit
             }
         }
 
-        // The standard Settings window (⌘,): a floating panel with the
-        // toolchain checkers and the version row.
+        // The standard Settings window (⌘,).
         Settings {
             SettingsView(updater: updater)
         }
     }
 
-    /// The credits block shown in the standard About panel, styled like
-    /// Running the Table's: centered small-system text with a little extra
-    /// line spacing, and the word "GitHub" itself as the link.
+    /// About-panel credits, styled to match Running the Table's.
     private static let credits: NSAttributedString = {
         let text = "Andrew Cunningham, 2026\n\nVibe-coded locally with open-weight Apache 2.0 models on Apple Silicon Macs\n\nGitHub"
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
-        // Extra line space between the wrapped lines of the credits paragraph.
         paragraph.lineSpacing = 2.0
         let credits = NSMutableAttributedString(string: text, attributes: [
             .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),

@@ -1,7 +1,6 @@
 import Foundation
 
-/// The SF Symbols a server can wear — outline versions only, covering the
-/// Mac desktop and laptop, PC, server, CPU, and cloud glyphs.
+/// The SF Symbols a server can wear (outline glyphs only).
 enum ServerIcon: String, CaseIterable, Identifiable {
     case macDesktop = "desktopcomputer"
     case macPro = "macpro.gen3"
@@ -16,9 +15,7 @@ enum ServerIcon: String, CaseIterable, Identifiable {
     case cloud = "cloud"
 
     var id: String { rawValue }
-    /// The SF Symbol name.
     var symbol: String { rawValue }
-    /// The label shown in pickers and menus.
     var label: String {
         switch self {
         case .macDesktop: "iMac"
@@ -36,16 +33,13 @@ enum ServerIcon: String, CaseIterable, Identifiable {
     }
 }
 
-/// A local OpenAI-compatible model server (LM Studio, Bionic, …).
 struct Server: Codable, Identifiable, Hashable {
     let id: UUID
     var name: String
     /// Always normalized: includes the scheme and ends with `/v1`.
     var baseURL: URL
-    /// The SF Symbol shown in the sidebar and the detail header.
     var icon: String
-    /// Optional API key for servers that require auth. Nil means no
-    /// `Authorization` header is sent and no key is written to the config.
+    /// Optional API key; nil means no `Authorization` header is sent and no key is written to the config.
     var apiKey: String?
 
     init(id: UUID = UUID(), name: String, baseURL: URL, icon: String = ServerIcon.macDesktop.symbol, apiKey: String? = nil) {
@@ -71,25 +65,19 @@ struct Server: Codable, Identifiable, Hashable {
         apiKey = try container.decodeIfPresent(String.self, forKey: .apiKey)
     }
 
-    /// `host:port`, for display.
     var hostPort: String {
         guard let host = baseURL.host else { return "" }
         guard let port = baseURL.port else { return host }
         return "\(host):\(port)"
     }
 
-    /// Normalizes a user-entered address into a full `http://host:port/v1` URL.
-    ///
-    /// Accepts `127.0.0.1:1235`, `http://127.0.0.1:1235`,
-    /// `http://127.0.0.1:1235/v1`, or a LAN/Tailscale address. Returns nil when
-    /// the input has no host or isn't a valid URL.
+    /// Normalizes a user-entered address (`127.0.0.1:1235`, with or without scheme or `/v1`) into a full `http://host:port/v1` URL.
     static func normalizedBaseURL(from raw: String) -> URL? {
         var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
         if !text.contains("://") {
             text = "http://" + text
         }
-        // Drop trailing slashes; a clean `/v1` path is appended below.
         while text.hasSuffix("/") {
             text.removeLast()
         }

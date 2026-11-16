@@ -66,9 +66,7 @@ final class UpdateChecker: ObservableObject {
     }
     var openFile: (URL) -> Void = { NSWorkspace.shared.open($0) }
 
-    /// The newest release found to be newer than the running version. Kept
-    /// even after the prompt is dismissed, so the settings page can offer a
-    /// Download button without re-triggering the prompt.
+    /// The newest release newer than the running version; kept after the prompt is dismissed so the settings page can offer a Download button.
     @Published private(set) var availableUpdate: Release?
 
     let currentVersion: String
@@ -121,17 +119,14 @@ final class UpdateChecker: ObservableObject {
         prompt = nil
     }
 
-    /// Downloads the prompted DMG to ~/Downloads and opens it (mounts, Finder
-    /// window). Any failure falls back to the release page — never dead-end.
+    /// Downloads the prompted DMG and opens it; any failure falls back to the release page — never dead-end.
     func downloadPromptedUpdate() async {
         guard case .available = prompt, let release = availableUpdate else { return }
         prompt = nil
         await download(release)
     }
 
-    /// The settings page's Download button: downloads the newest known
-    /// release, clearing the prompt so the main window's sheet does not
-    /// appear afterwards.
+    /// The settings page's Download button; clears the prompt so the main window's sheet doesn't appear afterwards.
     func downloadAvailableUpdate() async {
         guard let release = availableUpdate else { return }
         prompt = nil

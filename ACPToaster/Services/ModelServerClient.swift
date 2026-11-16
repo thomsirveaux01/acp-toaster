@@ -1,30 +1,23 @@
 import Foundation
 
-/// Talks to a local model server. It probes each server's native model-list
-/// endpoint first (LM Studio, then Ollama) because those carry rich specs,
-/// and falls back to the OpenAI-compatible `/models` shape that every server
-/// also speaks.
+/// Probes a server's native model-list endpoint first (LM Studio, then Ollama) because those carry rich specs, falling back to the OpenAI-compatible `/models` shape.
 struct ModelServerClient {
-    /// What kind of server answered, so the UI can label it.
     enum ServerKind: String {
         case lmStudio = "LM Studio"
         case ollama = "Ollama"
         case openAICompatible = "OpenAI-compatible"
     }
 
-    /// A capability a model reports it has.
     enum Capability: String, CaseIterable, Hashable {
         case vision = "vision"
         case toolUse = "tool use"
         case reasoning = "reasoning"
     }
 
-    /// A single model as reported by the server. Spec fields are nil when the
-    /// server's endpoint doesn't report them (e.g. the OpenAI fallback).
+    /// A model as reported by the server; spec fields are nil when the endpoint doesn't report them (e.g. the OpenAI fallback).
     struct ModelInfo: Identifiable, Hashable {
         /// The exact model ID to use in API calls.
         let id: String
-        /// The optional "name" field, when the server provides one.
         let displayName: String?
         /// The model type, e.g. "llm" or "embedding" (LM Studio only).
         let type: String?
@@ -34,11 +27,9 @@ struct ModelServerClient {
         let quantization: String?
         /// Weight format, e.g. "gguf" or "mlx".
         let format: String?
-        /// Size on disk / in memory, in bytes.
         let sizeBytes: Int64?
         /// Maximum context length, in tokens.
         let maxContextLength: Int?
-        /// Capabilities the server reports for this model.
         let capabilities: Set<Capability>
 
         /// True for embedding (and similar utility) models that can't drive
@@ -48,23 +39,18 @@ struct ModelServerClient {
         }
     }
 
-    /// Everything a detection run tells us about a server.
     struct ModelList: Equatable {
         let models: [ModelInfo]
         let kind: ServerKind
         let latency: Duration
     }
 
-    /// User-facing failures, with friendly descriptions. Transport failures
-    /// carry the underlying system message so the real cause is visible.
+    /// User-facing failures; transport failures carry the system message so the real cause is visible.
     enum ServerError: LocalizedError {
-        /// Connection refused, no route, or DNS failure — usually the machine is asleep or off.
+        /// Usually the machine is asleep or off.
         case unreachable(detail: String)
-        /// The server didn't answer within the timeout.
         case timedOut
-        /// The server answered, but with a non-2xx status.
         case httpError(status: Int)
-        /// The response wasn't JSON in the OpenAI models shape.
         case badResponse(detail: String)
 
         var errorDescription: String? {
@@ -81,12 +67,8 @@ struct ModelServerClient {
         }
     }
 
-    /// How long to wait for the server to answer.
     private static let timeout: TimeInterval = 5
 
-    /// GETs the model list, trying each native endpoint before the OpenAI
-    /// fallback, and reports the models, the server kind, and the round-trip
-    /// time.
     func fetchModels(from server: Server) async throws -> ModelList {
         let start = ContinuousClock.now
         let origin = Self.origin(of: server.baseURL)
@@ -101,15 +83,12 @@ struct ModelServerClient {
            let models = try? Self.decodeOllama(data) {
             return ModelList(models: models, kind: .ollama, latency: ContinuousClock.now - start)
         }
-        // 3. The OpenAI-compatible shape every server also speaks. The error
-        //    from this call is the one that surfaces if the server is down.
+        // 3. The OpenAI-compatible fallback; its error is the one that surfaces if the server is down.
         let data = try await get(server.baseURL.appendingPathComponent("models"), apiKey: server.apiKey)
         let models = try Self.decodeOpenAI(data)
         return ModelList(models: models, kind: .openAICompatible, latency: ContinuousClock.now - start)
     }
 
-    /// A plain GET that throws ServerError on transport or HTTP failures.
-    /// Sends `Authorization: Bearer <key>` when the server has a key.
     private func get(_ url: URL, apiKey: String?) async throws -> Data {
         var request = URLRequest(url: url, timeoutInterval: Self.timeout)
         request.httpMethod = "GET"
@@ -134,7 +113,6 @@ struct ModelServerClient {
         return data
     }
 
-    /// The scheme + host + port of a base URL, dropping any path such as `/v1`.
     private static func origin(of url: URL) -> URL {
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         components?.path = ""
@@ -143,8 +121,6 @@ struct ModelServerClient {
         return components?.url ?? url
     }
 
-    /// Maps a URLError to the friendlier ServerError cases, keeping the
-    /// underlying system message so the real cause shows in the UI.
     private static func serverError(from error: URLError) -> ServerError {
         switch error.code {
         case .timedOut:
@@ -191,12 +167,7 @@ struct ModelServerClient {
         }
 
         let payload = try JSONDecoder().decode(Payload.self, from: data)
-        // When LM Link is active, the same model key can appear more than
-        // once — once for the local copy and once per linked device's copy.
-        // The public REST API doesn't flag which is which (that origin lives
-        // only in LM Studio's internal authenticated API), so collapse
-        // duplicates by key, keeping the first occurrence, so each model is
-        // exposed exactly once instead of once per device.
+        // LM Link lists the same model key once per linked device, and the public API doesn't flag which is which — collapse duplicates by key.
         var seenKeys = Set<String>()
         let uniqueEntries = payload.entries.filter { entry in
             guard !entry.key.isEmpty else { return false }

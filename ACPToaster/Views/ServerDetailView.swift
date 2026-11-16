@@ -1,22 +1,15 @@
 import SwiftUI
 import AppKit
 
-/// Detail for one selected server: its detected models, each with a Toast
-/// button that generates its ACP wrapper, and a status bar along the bottom.
+/// One server's detail: detected models with Toast buttons, and a bottom status bar.
 struct ServerDetailView: View {
-    /// The server this detail is for.
     let server: Server
 
-    /// Shared app state, owned by ContentView.
     @Environment(AppModel.self) private var appModel
 
-    /// Detection state for this server.
     @State private var state = ServerState()
-    /// Wrapper results, keyed by model ID.
     @State private var toasts: [String: WrapperGenerator.Result] = [:]
-    /// The model ID currently being toasted, if any.
     @State private var toastingModelID: String?
-    /// The message shown in the bottom status bar.
     @State private var statusMessage: ToastStatus?
 
     /// Used for the wrapper's exec line when no opencode binary is found.
@@ -24,13 +17,9 @@ struct ServerDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // A plain inset List (not a grouped Form) so that per-row modifiers
-            // like .listRowSeparator actually take effect, and the built-in
-            // alternating row backgrounds give the Screen Sharing-style zebra.
+            // A plain inset List (not a grouped Form) so per-row modifiers like .listRowSeparator take effect and the built-in zebra shows.
             List {
-                // The server's icon, large enough to span the server type and
-                // detection status rows, beside them. (The icon is chosen in
-                // the add/edit sheet.)
+                // The icon is chosen in the add/edit sheet.
                 Section {
                     HStack(spacing: 10) {
                         Image(systemName: server.icon)
@@ -57,7 +46,6 @@ struct ServerDetailView: View {
                     .listRowSeparator(.hidden)
                 }
 
-                // The models the server offers, each with its own Toast button.
                 if case .up = state.status {
                     Section {
                         ForEach(state.models) { model in
@@ -78,17 +66,15 @@ struct ServerDetailView: View {
             .listStyle(.inset)
             .alternatingRowBackgrounds()
 
-            // The bottom status bar, built to match the sidebar's +/− bar height.
+            // Sized to match the sidebar's +/− bar.
             statusBar
         }
         .navigationTitle(server.name)
         .task(id: server.id) {
-            // Auto-detect when this server has never been checked.
             if state.status == .never {
                 await detectAsync()
             }
-            // Keep the ping (and model list) fresh: a lightweight models GET
-            // every 5 seconds. The task is cancelled when the view goes away.
+            // Keep the ping and model list fresh: a models GET every 5 seconds.
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(5))
                 guard !Task.isCancelled else { break }
@@ -97,7 +83,6 @@ struct ServerDetailView: View {
         }
     }
 
-    /// The detection status shown next to the Detect button.
     @ViewBuilder
     private var statusLabel: some View {
         if state.isDetecting {
@@ -113,8 +98,7 @@ struct ServerDetailView: View {
                 Text("Not checked yet")
                     .foregroundStyle(.secondary)
             case .up(let count, let latency):
-                // The server kind has its own row above, so this is just
-                // the count and the ping.
+                // The kind has its own row above; this is just the count and the ping.
                 Text("\(count) models · Ping: \(latencyText(latency))")
                     .foregroundStyle(.green)
             case .down(let message):
@@ -126,12 +110,10 @@ struct ServerDetailView: View {
 
     // MARK: - Detection
 
-    /// Starts a detection run in the background.
     private func detect() {
         Task { await detectAsync() }
     }
 
-    /// Fetches the model list for this server and updates its state.
     private func detectAsync() async {
         guard !state.isDetecting, !state.isRefreshing else { return }
         state.isDetecting = true
@@ -176,8 +158,7 @@ struct ServerDetailView: View {
 
     // MARK: - Toasting
 
-    /// Starts a toast run for one model in the background. Toasts are
-    /// serialized so two runs never write the OpenCode config at once.
+    /// Starts a toast run; toasts are serialized so two runs never write the OpenCode config at once.
     private func toast(_ model: ModelServerClient.ModelInfo) {
         guard toastingModelID == nil else { return }
         toastingModelID = model.id
@@ -185,8 +166,7 @@ struct ServerDetailView: View {
         Task { await toastAsync(model) }
     }
 
-    /// Locates opencode, merges this model into the OpenCode config, writes its
-    /// wrapper, and refreshes the Xcode expert skill. Re-running is idempotent.
+    /// Re-running is idempotent.
     private func toastAsync(_ model: ModelServerClient.ModelInfo) async {
         let selection = AppModel.ModelSelection(serverID: server.id, modelID: model.id, displayName: model.displayName)
 
@@ -207,7 +187,6 @@ struct ServerDetailView: View {
             configError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
 
-        // Write the wrapper, or record the config error.
         let result: WrapperGenerator.Result
         if let configError {
             result = WrapperGenerator.Result(selection: selection, wrapperPath: "", created: false, error: configError)
@@ -234,10 +213,7 @@ struct ServerDetailView: View {
         toastingModelID = nil
     }
 
-    /// Restores the "toasted" state for any model whose wrapper script already
-    /// exists on disk, so models toasted in a previous session still show their
-    /// expanded row (wrapper path, copy, delete) when the app reopens. The disk
-    /// is the source of truth; toasts already in memory (e.g. a fresh one) win.
+    /// Restores toasted state from wrapper scripts on disk, so models toasted in a previous session reopen expanded; in-memory toasts win.
     private func restoreToastedModels(_ models: [ModelServerClient.ModelInfo]) {
         let fileManager = FileManager.default
         for model in models where toasts[model.id] == nil {
@@ -249,8 +225,7 @@ struct ServerDetailView: View {
         }
     }
 
-    /// Deletes a toasted model's wrapper script and collapses its row back to
-    /// just the model name and Toast button.
+    /// Deletes a toasted model's wrapper script.
     private func deleteWrapper(_ model: ModelServerClient.ModelInfo) {
         guard let result = toasts[model.id], !result.wrapperPath.isEmpty else { return }
         let path = result.wrapperPath
@@ -267,8 +242,7 @@ struct ServerDetailView: View {
 
     // MARK: - Status bar
 
-    /// A bar along the bottom of the detail, sized like the sidebar's +/− bar,
-    /// that reports what the last action did.
+    /// Reports what the last action did.
     private var statusBar: some View {
         VStack(spacing: 0) {
             Divider()
@@ -287,7 +261,6 @@ struct ServerDetailView: View {
         }
     }
 
-    /// The icon + text for a status message, colored by its kind.
     @ViewBuilder
     private func statusView(_ status: ToastStatus) -> some View {
         switch status.kind {
@@ -314,14 +287,10 @@ struct ServerDetailView: View {
 
 // MARK: - Model row
 
-/// One model row: the display name (the row's primary text), a specs line
-/// (params · quant · format · RAM · context), a capabilities line, and a
-/// Toast button at the end. Once toasted, an expanded row holds the wrapper
-/// path with right-aligned copy and delete buttons.
+/// One model row: name, specs, capabilities, and a Toast button; once toasted, an expanded row holds the wrapper path with copy and delete.
 private struct ModelToastRow: View {
     let model: ModelServerClient.ModelInfo
     let result: WrapperGenerator.Result?
-    /// True while this specific model is being toasted.
     let isToasting: Bool
     /// True while any model is being toasted (toasts are serialized).
     let isBusy: Bool
@@ -331,10 +300,7 @@ private struct ModelToastRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 8) {
-                // The model's info, stacked: name over specs over capabilities.
-                // Apple's hierarchical text: headline for the primary label,
-                // caption + secondary for the supporting lines, with a little
-                // extra spacing between the lines.
+                // Apple's hierarchical text: headline for the primary label, caption + secondary for the supporting lines.
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 6) {
                         Text(model.displayName ?? model.id)
@@ -376,8 +342,6 @@ private struct ModelToastRow: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(isBusy)
             }
-            // The expanded row: the wrapper path with right-aligned copy and
-            // delete buttons, or an error.
             if let result {
                 if let error = result.error {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -411,8 +375,6 @@ private struct ModelToastRow: View {
         .listRowSeparator(.hidden)
     }
 
-    /// The "params · quant · format · RAM · context" line, skipping any spec
-    /// the server didn't report.
     private var specParts: [String] {
         var parts: [String] = []
         if let params = model.params { parts.append(params) }
@@ -427,12 +389,10 @@ private struct ModelToastRow: View {
         return parts
     }
 
-    /// The model's capabilities in a fixed, readable order.
     private var capabilities: [ModelServerClient.Capability] {
         ModelServerClient.Capability.allCases.filter { model.capabilities.contains($0) }
     }
 
-    /// Formats a token count compactly: "128K", "1M".
     private static func contextText(_ length: Int) -> String {
         if length >= 1_000_000 {
             return String(format: "%.0fM", Double(length) / 1_000_000)
@@ -443,7 +403,6 @@ private struct ModelToastRow: View {
         return "\(length)"
     }
 
-    /// A small muted capsule label, e.g. "embedded" or "vision".
     private func badge(_ text: String) -> some View {
         Text(text)
             .font(.caption2)
@@ -461,7 +420,6 @@ private struct ModelToastRow: View {
 
 // MARK: - Support
 
-/// A message for the bottom status bar, colored by what kind of event it is.
 private struct ToastStatus: Equatable {
     enum Kind: Equatable {
         case working
@@ -472,7 +430,6 @@ private struct ToastStatus: Equatable {
     var text: String
 }
 
-/// Detection state for one server.
 private struct ServerState {
     enum Status: Equatable {
         case never
@@ -482,14 +439,11 @@ private struct ServerState {
 
     var status: Status = .never
     var models: [ModelServerClient.ModelInfo] = []
-    /// The server kind from the last successful check, for the status line.
     var kind: ModelServerClient.ServerKind?
     var isDetecting = false
-    /// True while a background 5-second refresh is in flight.
     var isRefreshing = false
 }
 
-/// Formats a Duration as "X ms" or "X.X s".
 private func latencyText(_ latency: Duration) -> String {
     let components = latency.components
     // 1 ms = 1e15 attoseconds.

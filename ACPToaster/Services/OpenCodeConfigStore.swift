@@ -1,13 +1,10 @@
 import Foundation
 
-/// Manages `~/.config/opencode/opencode.json`, keeping the provider entries
-/// for ACP Toaster's servers in sync. Merges with whatever the user already has —
-/// unknown top-level keys and other providers survive untouched.
+/// Manages `~/.config/opencode/opencode.json`; merges with whatever the user has, leaving unknown keys and other providers untouched.
 struct OpenCodeConfigStore {
-    /// The config file this store manages.
     let configURL: URL
 
-    /// Defaults to `~/.config/opencode`; pass a scratch directory to test.
+    /// Pass a scratch directory to test.
     init(configDirectory: URL? = nil) {
         let directory = configDirectory ?? URL(fileURLWithPath: NSHomeDirectory())
             .appendingPathComponent(".config/opencode", isDirectory: true)
@@ -28,14 +25,12 @@ struct OpenCodeConfigStore {
         }
     }
 
-    /// Merges the server's provider entry (and its selected models) into the
-    /// config. Idempotent: re-running updates the entry in place.
+    /// Merges the server's provider entry into the config; idempotent.
     @discardableResult
     func ensureProvider(server: Server, models: [AppModel.ModelSelection]) throws -> URL {
         let providerID = WrapperGenerator.providerID(for: server)
         let fileManager = FileManager.default
 
-        // Start from the existing config, or a minimal one if there isn't one.
         let exists = fileManager.fileExists(atPath: configURL.path)
         var config: [String: Any]
         if exists {
@@ -65,7 +60,6 @@ struct OpenCodeConfigStore {
         }
         var providers = (config["provider"] as? [String: Any]) ?? [:]
 
-        // The entry we want in the config for this server.
         var modelsDict: [String: Any] = [:]
         for model in models {
             modelsDict[model.modelID] = ["name": model.displayName ?? model.modelID]
@@ -97,7 +91,6 @@ struct OpenCodeConfigStore {
         providers[providerID] = entry
         config["provider"] = providers
 
-        // The merged config must still be valid JSON before we touch the disk.
         let data: Data
         do {
             data = try JSONSerialization.data(withJSONObject: config, options: [.prettyPrinted, .sortedKeys])
@@ -108,7 +101,6 @@ struct OpenCodeConfigStore {
         do {
             try fileManager.createDirectory(at: configURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             if exists {
-                // Keep a backup of whatever we're about to replace.
                 let backupURL = configURL.appendingPathExtension("bak")
                 try? fileManager.removeItem(at: backupURL)
                 try fileManager.copyItem(at: configURL, to: backupURL)
@@ -117,7 +109,6 @@ struct OpenCodeConfigStore {
             let tempURL = configURL.deletingLastPathComponent()
                 .appendingPathComponent("opencode.json.\(UUID().uuidString).tmp")
             try data.write(to: tempURL)
-            // Atomic replace: same-directory rename over the existing file.
             try fileManager.replaceItem(at: configURL, withItemAt: tempURL, backupItemName: nil, options: [], resultingItemURL: nil)
         } catch {
             throw ConfigError.writeFailed

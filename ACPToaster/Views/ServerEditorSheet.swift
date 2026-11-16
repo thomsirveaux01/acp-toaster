@@ -1,14 +1,10 @@
 import SwiftUI
 
-/// Dialog for adding a new model server or editing an existing one.
 struct ServerEditorSheet: View {
-    /// The server being edited, or nil when adding a new one.
     let server: Server?
 
-    /// Called with the added or updated server.
     var onSave: (Server) -> Void
 
-    /// Shared app state, owned by ContentView.
     @Environment(AppModel.self) private var appModel
     @Environment(\.dismiss) private var dismiss
 
@@ -40,7 +36,6 @@ struct ServerEditorSheet: View {
 
             Form {
                 Section {
-                    // The glyph shown in the sidebar and the detail header.
                     Picker("Icon", selection: $icon) {
                         ForEach(ServerIcon.allCases) { option in
                             Label(option.label, systemImage: option.symbol)
@@ -50,7 +45,6 @@ struct ServerEditorSheet: View {
                     TextField("Name", text: $name)
                     TextField("Address", text: $address, prompt: Text("127.0.0.1:1235"))
                         .autocorrectionDisabled()
-                    // Optional: only needed for servers that require auth.
                     SecureField("API key", text: $apiKey, prompt: Text("Optional"))
                         .autocorrectionDisabled()
                 } footer: {

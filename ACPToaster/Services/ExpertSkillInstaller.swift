@@ -1,15 +1,10 @@
 import Foundation
 
-/// Keeps the Xcode expert skill installed in the user's global OpenCode
-/// configuration, so every ACP agent this app wires up can consult Apple's
-/// in-bundle expert references. The skill is a pointer: it tells the agent
-/// where to read the experts inside the Xcode bundle — nothing is copied out.
+/// Keeps the xcode-experts skill installed in the user's global OpenCode config, so ACP agents can consult Apple's in-bundle expert references. The skill is a pointer — nothing is copied out.
 struct ExpertSkillInstaller {
-    /// The skill's directory name under `~/.config/opencode/skills`.
     static let skillID = "xcode-experts"
 
-    /// The skills root this installer manages. Defaults to the user's global
-    /// OpenCode skills directory; pass a scratch directory to test.
+    /// The skills root; pass a scratch directory to test.
     let skillsDirectory: URL
 
     init(skillsDirectory: URL? = nil) {
@@ -18,18 +13,13 @@ struct ExpertSkillInstaller {
         self.skillsDirectory = directory
     }
 
-    /// What an install attempt did.
     enum Outcome: Equatable {
-        /// The skill was missing and is now installed.
         case installed
-        /// The skill was already present with identical content.
         case upToDate
         /// A different version was present; it was backed up and replaced.
         case updated
-        /// The install failed.
         case failed(String)
 
-        /// A short line for the UI.
         var message: String {
             switch self {
             case .installed: "Xcode expert references installed"
@@ -45,7 +35,6 @@ struct ExpertSkillInstaller {
         }
     }
 
-    /// Installs or refreshes the skill. Small file I/O; safe to call from a Task.
     func install() -> Outcome {
         let fileManager = FileManager.default
         let skillsDir = skillsDirectory.appendingPathComponent(Self.skillID, isDirectory: true)
@@ -58,7 +47,6 @@ struct ExpertSkillInstaller {
             }
             try fileManager.createDirectory(at: skillsDir, withIntermediateDirectories: true)
             if let existing {
-                // A different version is present — keep a copy before replacing it.
                 try existing.write(to: skillsDir.appendingPathComponent("SKILL.md.bak"), atomically: true, encoding: .utf8)
             }
             // Atomic replace: temp file in the same directory, then swap it in.
@@ -72,7 +60,6 @@ struct ExpertSkillInstaller {
         }
     }
 
-    /// The skill, bundled with the app.
     static let skillMarkdown = """
     ---
     name: Xcode Expert References

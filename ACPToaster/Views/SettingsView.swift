@@ -1,16 +1,12 @@
 import SwiftUI
 import AppKit
 
-/// The app's settings: a checker for OpenCode with an install button, and
-/// the app's own version with a passive update check. Shown as the standard
-/// Settings window (⌘, / toolbar gear).
+/// The standard Settings window (⌘, / toolbar gear): the OpenCode checker and the app's version with a passive update check.
 struct SettingsView: View {
-    /// The shared update checker, observed so the version row gains its
-    /// Download button when a check finds a newer release.
+    /// The shared update checker, observed so the version row gains its Download button when a check finds a newer release.
     @ObservedObject var updater: UpdateChecker
 
-    /// UserDefaults key for the last known OpenCode state, so the window can
-    /// show it instantly on open and re-check in the background.
+    /// The last known OpenCode state, so the window shows it instantly on open and re-checks in the background.
     private static let opencodeCacheKey = "acptoaster.toolchain.opencode"
 
     init(updater: UpdateChecker) {
@@ -20,12 +16,10 @@ struct SettingsView: View {
         _opencodeState = State(initialValue: Self.cachedState(Self.opencodeCacheKey))
     }
 
-    /// The official OpenCode installer, copied to the clipboard when
-    /// Homebrew isn't available to install it.
+    /// The official OpenCode installer, copied to the clipboard when Homebrew isn't available.
     private static let opencodeInstallerCommand =
         "curl -fsSL https://opencode.ai/v2/install | bash"
 
-    /// The installation state of one tool.
     private enum ToolState: Equatable, Codable {
         case checking
         case installed(version: String?)
@@ -41,8 +35,7 @@ struct SettingsView: View {
     @State private var openCodeCommandCopied = false
     @State private var installTask: Task<Void, Never>?
 
-    /// Re-checks when the window becomes active again, so an install done in
-    /// Terminal (required for Homebrew) is picked up on the next switch back.
+    /// Re-checks when the window becomes active again, so an install done in Terminal is picked up on the next switch back.
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -56,9 +49,6 @@ struct SettingsView: View {
         .frame(width: 520)
         .task {
             await check()
-            // Passive update check: silent and throttled to once a day
-            // inside the checker; the result shows up on the version row as
-            // a Download button when a newer release exists.
             await updater.check(userInitiated: false)
         }
         .onChange(of: scenePhase) {
@@ -71,10 +61,7 @@ struct SettingsView: View {
 
     // MARK: - Rows
 
-    /// One Tailscale-style settings row: a right-aligned bold label, the
-    /// tool's status, a caption line, and a trailing button. The status and
-    /// caption areas have fixed sizes, so nothing moves while the check runs
-    /// and the results appear in place.
+    /// One Tailscale-style settings row; the status and caption areas have fixed sizes so nothing moves while the check runs.
     private func toolRow<Trailing: View>(
         label: String,
         state: ToolState,
@@ -82,8 +69,6 @@ struct SettingsView: View {
         isError: Bool,
         @ViewBuilder trailing: () -> Trailing
     ) -> some View {
-        // Top-aligned, like the Tailscale settings: the label and the button
-        // line up with the status line, not the middle of the row.
         HStack(alignment: .top, spacing: 12) {
             Text(label)
                 .fontWeight(.semibold)
@@ -102,8 +87,6 @@ struct SettingsView: View {
         }
     }
 
-    /// The status line. While checking it's empty — the check runs silently
-    /// and the result appears in the reserved space without moving anything.
     @ViewBuilder
     private func statusLine(for state: ToolState) -> some View {
         switch state {
@@ -129,9 +112,6 @@ struct SettingsView: View {
         }
     }
 
-    /// The app's own version, laid out like the tool rows. When the passive
-    /// check has found a newer release, a caption names it and a Download
-    /// button appears at the trailing edge.
     private var versionRow: some View {
         HStack(alignment: .top, spacing: 12) {
             Text("Version:")
@@ -163,14 +143,13 @@ struct SettingsView: View {
         }
     }
 
-    /// The caption under the version: names the newer release when one is
-    /// known to exist, regardless of whether the prompt was dismissed.
+    /// Names the newer release when one is known to exist, regardless of whether the prompt was dismissed.
     private var updateCaption: String? {
         guard let release = updater.availableUpdate else { return nil }
         return "Version \(UpdateChecker.normalizedTag(release.tagName)) is available."
     }
 
-    /// The build number (CFBundleVersion), for the "· build 21" suffix.
+    /// The build number (CFBundleVersion), for the "· build N" suffix.
     private static var buildVersion: String? {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String
     }
@@ -219,8 +198,7 @@ struct SettingsView: View {
                 Text("Install")
             }
         }
-        // Grayed out while checking and while installing. Homebrew is no
-        // longer a requirement: without it the button copies the command.
+        // Grayed out while checking and while installing.
         .disabled(!openCodeMissing || isInstallingOpenCode)
     }
 
@@ -233,8 +211,6 @@ struct SettingsView: View {
 
     // MARK: - Actions
 
-    /// Checks for OpenCode and reports the result. The previous result stays
-    /// visible while the check runs, so nothing pops in.
     private func check() async {
         async let detection = OpencodeLocator().detect()
         // Homebrew is only a presence check: it decides whether the Install
@@ -250,7 +226,6 @@ struct SettingsView: View {
         Self.saveState(opencodeState, Self.opencodeCacheKey)
     }
 
-    /// The last known state for a tool, or .checking on the very first run.
     private static func cachedState(_ key: String) -> ToolState {
         guard let data = UserDefaults.standard.data(forKey: key),
               let state = try? JSONDecoder().decode(ToolState.self, from: data) else {
@@ -264,7 +239,6 @@ struct SettingsView: View {
         UserDefaults.standard.set(data, forKey: key)
     }
 
-    /// Runs `brew install opencode`, then re-checks.
     private func installOpenCode() async {
         isInstallingOpenCode = true
         let install = BrewService().install()

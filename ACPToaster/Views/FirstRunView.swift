@@ -1,20 +1,14 @@
 import SwiftUI
 import AppKit
 
-/// The first-run wizard: three screens (welcome, install OpenCode, add a
-/// server) with Skip/Back/Next navigation. It owns the whole window until
-/// the user finishes or skips it; afterwards, OpenCode status lives in the
-/// Settings window.
+/// The first-run wizard (welcome, install OpenCode, add a server); it owns the window until finished or skipped, after which OpenCode status lives in Settings.
 struct FirstRunView: View {
-    /// Called when the wizard ends (Done or Skip) so the app can advance
-    /// into the main window.
     var onFinish: () -> Void
 
     /// Called when the user taps "Add a server" on the last screen: the
     /// wizard ends and the main window opens the add-server sheet.
     var onAddServer: () -> Void = {}
 
-    /// The three screens, in order.
     enum Screen {
         case welcome
         case installOpenCode
@@ -27,12 +21,10 @@ struct FirstRunView: View {
         await OpencodeLocator().detect()
     }
 
-    /// UserDefaults key marking first-run setup as complete.
     static let setupCompleteKey = "acptoaster.setupComplete"
 
     @State private var screen: Screen
-    // OpenCode's version while on the install screen; nil means it isn't
-    // installed yet, so the install commands are shown instead.
+    // OpenCode's version while on the install screen; nil means not installed yet.
     @State private var opencodeVersion: String?
     @State private var brewCommandCopied = false
     @State private var openCodeCommandCopied = false
@@ -80,7 +72,6 @@ struct FirstRunView: View {
 
     // MARK: - Screens
 
-    /// Screen 1: the app icon, the welcome header, and the pitch.
     private var welcomeScreen: some View {
         VStack(spacing: 20) {
             Image(nsImage: NSApp.applicationIconImage)
@@ -96,9 +87,6 @@ struct FirstRunView: View {
         }
     }
 
-    /// Screen 2: the OpenCode install status. While OpenCode is missing,
-    /// the two copyable install commands; once the poll finds it, the green
-    /// check with its version.
     private var installOpenCodeScreen: some View {
         VStack(spacing: 20) {
             Text("Install OpenCode")
@@ -133,9 +121,7 @@ struct FirstRunView: View {
         }
     }
 
-    /// One install command: a bold label, the monospaced command with a
-    /// small Copy button, and a caption line (blank until copied) so the
-    /// row's height stays constant.
+    /// One install command; the caption line stays (blank until copied) so the row's height is constant.
     private func commandRow(label: String, command: String, copied: Binding<Bool>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
@@ -155,7 +141,6 @@ struct FirstRunView: View {
         }
     }
 
-    /// Screen 3: the add-a-server nudge and the sign-off.
     private var addServerScreen: some View {
         VStack(spacing: 16) {
             Text("Add a server")
@@ -179,9 +164,7 @@ struct FirstRunView: View {
 
     // MARK: - Navigation
 
-    /// The wizard's button bar: Skip (every screen but the last), Back, and
-    /// Next/Done. Next on the install screen is disabled until OpenCode is
-    /// found; Skip is the way around it.
+    /// Skip (every screen but the last), Back, and Next/Done; Next on the install screen is disabled until OpenCode is found, Skip is the way around it.
     private var navigationButtons: some View {
         HStack(spacing: 12) {
             if screen != .addServer {
@@ -198,8 +181,6 @@ struct FirstRunView: View {
                 Button("Next") { screen = .addServer }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
-                    // OpenCode must be installed before moving on; Skip is
-                    // the way around it.
                     .disabled(opencodeVersion == nil)
             case .addServer:
                 Button("Back") { screen = .installOpenCode }
@@ -210,15 +191,11 @@ struct FirstRunView: View {
         }
     }
 
-    /// Ends the wizard: remembers that setup is complete and advances into
-    /// the main window.
     private func finish() {
         UserDefaults.standard.set(true, forKey: Self.setupCompleteKey)
         onFinish()
     }
 
-    /// Ends the wizard from the "Add a server" button: remembers that setup
-    /// is complete and asks the main window to open the add-server sheet.
     private func finishAndAddServer() {
         UserDefaults.standard.set(true, forKey: Self.setupCompleteKey)
         onAddServer()

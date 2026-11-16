@@ -1,36 +1,30 @@
 import Foundation
 import Observation
 
-/// A user-facing failure from an AppModel intent.
 struct AppModelError: LocalizedError, Hashable {
     let message: String
 
     var errorDescription: String? { message }
 }
 
-/// Shared app state: the configured model servers and the models picked from them.
 @Observable
 final class AppModel {
-    /// UserDefaults key for the persisted server list.
     static let serversKey = "acptoaster.servers"
 
-    /// A model chosen from a server, ready to be wrapped in Phase 3.
     struct ModelSelection: Codable, Hashable, Identifiable {
         var serverID: UUID
         /// The exact model ID the server reports.
         var modelID: String
-        /// The server's optional display name for the model, if any.
         var displayName: String?
 
         var id: String { "\(serverID.uuidString)/\(modelID)" }
     }
 
-    /// Configured servers, persisted to UserDefaults.
     var servers: [Server] {
         didSet { saveServers() }
     }
 
-    /// Models the user picked; intentionally not persisted.
+    /// Intentionally not persisted.
     var selections: [ModelSelection] = []
 
     init() {
@@ -39,8 +33,6 @@ final class AppModel {
 
     // MARK: - Intents
 
-    /// Validates and adds a server. Fails with a user-facing message when the
-    /// name is empty, the address doesn't normalize, or the server already exists.
     @discardableResult
     func addServer(name: String, address: String, icon: String, apiKey: String) -> Result<Server, AppModelError> {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -59,9 +51,6 @@ final class AppModel {
         return .success(server)
     }
 
-    /// Updates a server's name, address, and API key. Fails with a user-facing
-    /// message when the name is empty, the address doesn't normalize, or
-    /// another server already uses that address.
     @discardableResult
     func updateServer(_ id: UUID, name: String, address: String, icon: String, apiKey: String) -> Result<Server, AppModelError> {
         guard let index = servers.firstIndex(where: { $0.id == id }) else {
@@ -85,19 +74,16 @@ final class AppModel {
         return .success(servers[index])
     }
 
-    /// Trims the key and treats an empty one as "no auth".
     private static func normalizedKey(_ raw: String) -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    /// Removes a server and any selections that referenced it.
     func removeServer(_ id: UUID) {
         servers.removeAll { $0.id == id }
         selections.removeAll { $0.serverID == id }
     }
 
-    /// Adds the selection if absent, removes it if present.
     func toggleSelection(_ selection: ModelSelection) {
         if let index = selections.firstIndex(of: selection) {
             selections.remove(at: index)

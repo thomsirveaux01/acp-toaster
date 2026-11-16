@@ -1,27 +1,19 @@
 import SwiftUI
 
-/// Main window: first-run setup, then a Screen-Sharing-style split view with
-/// the server list in the sidebar and the selected server's detail on the right.
+/// Main window: the first-run wizard, then a Screen-Sharing-style split view (server list sidebar, selected server detail).
 struct ContentView: View {
-    /// Shared app state, owned by this view.
     @State private var appModel = AppModel()
 
     /// The update checker, owned by the App so the menu and the window share it.
     /// Defaulted so the preview compiles without owning one.
     @ObservedObject var updater: UpdateChecker = UpdateChecker()
 
-    /// First-run setup is complete once the wizard has been finished or
-    /// skipped at least once.
+    /// True once the first-run wizard has been finished or skipped.
     @State private var setupComplete = UserDefaults.standard.bool(forKey: FirstRunView.setupCompleteKey)
 
-    /// The server currently selected in the sidebar.
     @State private var selectedServerID: UUID?
 
-    /// What the editor sheet is showing: a new server to add, or an existing
-    /// one to edit. Driving the sheet with `.sheet(item:)` (instead of a
-    /// separate `isPresented` flag plus an optional) guarantees the sheet
-    /// always sees the current value — the two-state version could present
-    /// with a stale `nil` and show the blank add form.
+    /// What the editor sheet is showing; driving it with `.sheet(item:)` guarantees the sheet sees the current value (a separate `isPresented` + optional could present a stale `nil`).
     private enum EditorSheet: Identifiable {
         case add
         case edit(Server)
@@ -40,8 +32,6 @@ struct ContentView: View {
             if setupComplete {
                 mainFlow
             } else {
-                // First launch: the three-screen wizard owns the whole
-                // window until the user finishes or skips it.
                 FirstRunView(
                     onFinish: { setupComplete = true },
                     onAddServer: {
@@ -54,10 +44,8 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 640, minHeight: 480)
-        // Silent launch check, throttled to once a day inside the checker.
         .task { await updater.check(userInitiated: false) }
-        // The two status popups ride the stock alert; the available-prompt is a
-        // sheet because alerts cannot scroll long release notes.
+        // The status popups ride the stock alert; the available-prompt is a sheet because alerts can't scroll long release notes.
         .alert(alertTitle, isPresented: statusShown, actions: { alertButtons }, message: {
             Text(alertMessage)
         })
@@ -117,7 +105,6 @@ struct ContentView: View {
         Button("OK", role: .cancel) {}
     }
 
-    /// The split window shown after first-run setup.
     private var mainFlow: some View {
         NavigationSplitView {
             sidebar
@@ -140,7 +127,6 @@ struct ContentView: View {
         .onChange(of: appModel.servers) { clearStaleSelection() }
     }
 
-    /// The sidebar: the server list with a +/− bottom bar.
     private var sidebar: some View {
         VStack(spacing: 0) {
             List(selection: $selectedServerID) {
@@ -200,7 +186,6 @@ struct ContentView: View {
         .navigationSplitViewColumnWidth(200)
     }
 
-    /// The detail: the selected server, or a prompt to pick one.
     @ViewBuilder
     private var detail: some View {
         Group {
@@ -225,7 +210,6 @@ struct ContentView: View {
         }
     }
 
-    /// The settings window, tucked away behind a toolbar button.
     private var setupButton: some View {
         SettingsLink {
             Image(systemName: "gearshape")
@@ -233,7 +217,6 @@ struct ContentView: View {
         .help("Settings")
     }
 
-    /// Selects the first server on appear when nothing is selected.
     private func selectFirstIfNone() {
         guard selectedServerID == nil else { return }
         if let first = appModel.servers.first {
@@ -241,7 +224,6 @@ struct ContentView: View {
         }
     }
 
-    /// Clears the selection when the selected server has been removed.
     private func clearStaleSelection() {
         guard let current = selectedServerID,
               !appModel.servers.contains(where: { $0.id == current }) else { return }
@@ -249,9 +231,7 @@ struct ContentView: View {
     }
 }
 
-/// Update-available sheet: one-line announcement, bulleted release notes
-/// capped at a scrollable height so a long list cannot break the window,
-/// then the actions (Download is the default button).
+/// Update-available sheet; the notes are capped to a scrollable height so a long list can't break the window.
 struct UpdatePromptView: View {
     let version: String
     let notes: String

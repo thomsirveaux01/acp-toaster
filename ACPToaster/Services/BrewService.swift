@@ -1,17 +1,12 @@
 import Foundation
 
-/// Installs OpenCode via Homebrew, streaming live output.
 struct BrewService {
-    /// The one-liner that installs Homebrew itself. Copied to the clipboard
-    /// (never run by the app) because the installer needs sudo, which a GUI
-    /// app should not prompt for.
+    /// The one-liner that installs Homebrew itself. Copied to the clipboard, never run: it needs sudo, which a GUI app shouldn't prompt for.
     static let installerCommand =
         "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
 
-    /// The command that installs OpenCode via Homebrew.
     static let opencodeInstallCommand = "brew install opencode"
 
-    /// The Homebrew executable, if present.
     static func brewPath() -> String? {
         for candidate in ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
         where FileManager.default.isExecutableFile(atPath: candidate) {
@@ -20,7 +15,6 @@ struct BrewService {
         return nil
     }
 
-    /// A running (or finished) `brew install opencode` process.
     final class Install {
         /// Combined stdout+stderr, one element per line.
         let lines: AsyncStream<String>
@@ -28,7 +22,6 @@ struct BrewService {
         /// The brew process's exit status; valid once `lines` is exhausted.
         var exitStatus: Int32 { status.value }
 
-        /// Terminates the child process if it is still running.
         func cancel() {
             if process.isRunning {
                 process.terminate()
@@ -45,7 +38,6 @@ struct BrewService {
         }
     }
 
-    /// Starts `brew install opencode` and streams its combined output line by line.
     func install() -> Install {
         let process = Process()
         let brew = Self.brewPath() ?? "/opt/homebrew/bin/brew"
@@ -64,7 +56,6 @@ struct BrewService {
         let status = ExitStatusBox()
         let (stream, continuation) = AsyncStream.makeStream(of: String.self)
         continuation.onTermination = { termination in
-            // The consumer went away (e.g. its task was cancelled): stop the child.
             if termination == .cancelled {
                 process.terminate()
             }
@@ -94,7 +85,6 @@ struct BrewService {
         (brew as NSString).deletingLastPathComponent
     }
 
-    /// Reads the pipe to EOF, yielding one stream element per complete line.
     nonisolated private static func pump(_ fileHandle: FileHandle, _ continuation: AsyncStream<String>.Continuation) {
         var buffer = Data()
         while true {
@@ -113,7 +103,6 @@ struct BrewService {
         }
     }
 
-    /// Shared holder for the child process's exit status, written by the pump task.
     fileprivate final class ExitStatusBox: @unchecked Sendable {
         // Written by the pump task, read on the main actor after the stream ends.
         nonisolated(unsafe) var value: Int32 = -1
