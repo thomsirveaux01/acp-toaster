@@ -26,8 +26,7 @@ struct OpenCodeConfigStore {
     }
 
     /// Merges the server's provider entry into the config; idempotent.
-    @discardableResult
-    func ensureProvider(server: Server, models: [AppModel.ModelSelection]) throws -> URL {
+    func ensureProvider(server: Server, models: [AppModel.ModelSelection]) throws {
         let providerID = WrapperGenerator.providerID(for: server)
         let fileManager = FileManager.default
 
@@ -113,6 +112,5 @@ struct OpenCodeConfigStore {
         } catch {
             throw ConfigError.writeFailed
         }
-        return configURL
     }
 }

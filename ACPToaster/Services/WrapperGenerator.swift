@@ -6,8 +6,6 @@ struct WrapperGenerator {
         let selection: AppModel.ModelSelection
         /// Absolute path to the wrapper script, for pasting into Xcode.
         let wrapperPath: String
-        /// True when the script didn't exist before this run.
-        let created: Bool
         let error: String?
 
         var id: String { selection.id }
@@ -57,15 +55,14 @@ struct WrapperGenerator {
             try fileManager.createDirectory(atPath: binDir, withIntermediateDirectories: true)
             try fileManager.setAttributes([.posixPermissions: 0o755], ofItemAtPath: binDir)
 
-            let existed = fileManager.fileExists(atPath: wrapperPath)
             let script = Self.script(serverName: server.name, providerID: providerID, modelID: selection.modelID, opencodePath: opencodePath, homeDir: homeDir, scriptName: fileName)
             try script.write(toFile: wrapperPath, atomically: true, encoding: .utf8)
             // The atomic write replaces the inode, so re-assert the mode.
             try fileManager.setAttributes([.posixPermissions: 0o755], ofItemAtPath: wrapperPath)
 
-            return Result(selection: selection, wrapperPath: wrapperPath, created: !existed, error: nil)
+            return Result(selection: selection, wrapperPath: wrapperPath, error: nil)
         } catch {
-            return Result(selection: selection, wrapperPath: wrapperPath, created: false, error: error.localizedDescription)
+            return Result(selection: selection, wrapperPath: wrapperPath, error: error.localizedDescription)
         }
     }
 

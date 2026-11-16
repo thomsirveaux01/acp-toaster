@@ -72,13 +72,13 @@ struct ServerDetailView: View {
         .navigationTitle(server.name)
         .task(id: server.id) {
             if state.status == .never {
-                await detectAsync()
+                await fetch(silent: false)
             }
             // Keep the ping and model list fresh: a models GET every 5 seconds.
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(5))
                 guard !Task.isCancelled else { break }
-                await refreshAsync()
+                await refresh()
             }
         }
     }
@@ -111,12 +111,18 @@ struct ServerDetailView: View {
     // MARK: - Detection
 
     private func detect() {
-        Task { await detectAsync() }
+        Task { await fetch(silent: false) }
     }
 
-    private func detectAsync() async {
+    /// A silent re-ping from the 5-second refresh loop: no spinner, so the status line just updates.
+    private func refresh() async {
+        await fetch(silent: true)
+    }
+
+    private func fetch(silent: Bool) async {
         guard !state.isDetecting, !state.isRefreshing else { return }
-        state.isDetecting = true
+        state.isDetecting = !silent
+        state.isRefreshing = silent
 
         do {
             let list = try await ModelServerClient().fetchModels(from: server)
@@ -125,7 +131,7 @@ struct ServerDetailView: View {
             state.kind = list.kind
             state.status = .up(count: list.models.count, latency: list.latency)
         } catch is CancellationError {
-            return // The view went away mid-detection.
+            return // The view went away mid-fetch.
         } catch {
             state.status = .down(message: (error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
         }
@@ -133,26 +139,6 @@ struct ServerDetailView: View {
         // Don't resurrect state for a server the user removed mid-flight.
         guard appModel.servers.contains(where: { $0.id == server.id }) else { return }
         state.isDetecting = false
-    }
-
-    /// A silent re-ping from the 5-second refresh loop: same fetch as a
-    /// detection, but without the spinner so the status line just updates.
-    private func refreshAsync() async {
-        guard !state.isDetecting, !state.isRefreshing else { return }
-        state.isRefreshing = true
-
-        do {
-            let list = try await ModelServerClient().fetchModels(from: server)
-            state.models = list.models
-            restoreToastedModels(list.models)
-            state.kind = list.kind
-            state.status = .up(count: list.models.count, latency: list.latency)
-        } catch is CancellationError {
-            return // The view went away mid-refresh.
-        } catch {
-            state.status = .down(message: (error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
-        }
-
         state.isRefreshing = false
     }
 
@@ -189,7 +175,7 @@ struct ServerDetailView: View {
 
         let result: WrapperGenerator.Result
         if let configError {
-            result = WrapperGenerator.Result(selection: selection, wrapperPath: "", created: false, error: configError)
+            result = WrapperGenerator.Result(selection: selection, wrapperPath: "", error: configError)
         } else {
             result = WrapperGenerator().generate(for: selection, server: server, opencodePath: opencodePath, homeDir: NSHomeDirectory())
         }
@@ -220,7 +206,7 @@ struct ServerDetailView: View {
             let selection = AppModel.ModelSelection(serverID: server.id, modelID: model.id, displayName: model.displayName)
             let path = WrapperGenerator.wrapperPath(for: selection, server: server, homeDir: NSHomeDirectory())
             if fileManager.fileExists(atPath: path) {
-                toasts[model.id] = WrapperGenerator.Result(selection: selection, wrapperPath: path, created: false, error: nil)
+                toasts[model.id] = WrapperGenerator.Result(selection: selection, wrapperPath: path, error: nil)
             }
         }
     }

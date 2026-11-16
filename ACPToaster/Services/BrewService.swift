@@ -22,17 +22,9 @@ struct BrewService {
         /// The brew process's exit status; valid once `lines` is exhausted.
         var exitStatus: Int32 { status.value }
 
-        func cancel() {
-            if process.isRunning {
-                process.terminate()
-            }
-        }
-
-        private let process: Process
         private let status: ExitStatusBox
 
-        fileprivate init(process: Process, status: ExitStatusBox, lines: AsyncStream<String>) {
-            self.process = process
+        fileprivate init(status: ExitStatusBox, lines: AsyncStream<String>) {
             self.status = status
             self.lines = lines
         }
@@ -66,7 +58,7 @@ struct BrewService {
         } catch {
             continuation.yield("Failed to start brew: \(error.localizedDescription)")
             continuation.finish()
-            return Install(process: process, status: status, lines: stream)
+            return Install(status: status, lines: stream)
         }
 
         // Pump the pipe off the main actor so the UI stays responsive.
@@ -78,7 +70,7 @@ struct BrewService {
             continuation.finish()
         }
 
-        return Install(process: process, status: status, lines: stream)
+        return Install(status: status, lines: stream)
     }
 
     private static func brewDir(for brew: String) -> String {

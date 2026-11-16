@@ -66,8 +66,12 @@ struct Server: Codable, Identifiable, Hashable {
     }
 
     var hostPort: String {
-        guard let host = baseURL.host else { return "" }
-        guard let port = baseURL.port else { return host }
+        Self.hostPort(of: baseURL)
+    }
+
+    static func hostPort(of url: URL) -> String {
+        guard let host = url.host else { return "" }
+        guard let port = url.port else { return host }
         return "\(host):\(port)"
     }
 

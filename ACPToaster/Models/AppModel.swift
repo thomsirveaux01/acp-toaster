@@ -24,9 +24,6 @@ final class AppModel {
         didSet { saveServers() }
     }
 
-    /// Intentionally not persisted.
-    var selections: [ModelSelection] = []
-
     init() {
         servers = Self.loadServers()
     }
@@ -35,20 +32,14 @@ final class AppModel {
 
     @discardableResult
     func addServer(name: String, address: String, icon: String, apiKey: String) -> Result<Server, AppModelError> {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else {
-            return .failure(AppModelError(message: "Give the server a name."))
+        switch validated(name: name, address: address, excludingID: nil) {
+        case .failure(let error):
+            return .failure(error)
+        case .success(let trimmedName, let baseURL):
+            let server = Server(name: trimmedName, baseURL: baseURL, icon: icon, apiKey: Self.normalizedKey(apiKey))
+            servers.append(server)
+            return .success(server)
         }
-        guard let baseURL = Server.normalizedBaseURL(from: address) else {
-            return .failure(AppModelError(message: "Use valid hostname or port, like 127.0.0.1:1235."))
-        }
-        if servers.contains(where: { $0.baseURL == baseURL }) {
-            let hostPort = baseURL.port.map { "\(baseURL.host ?? ""):\($0)" } ?? (baseURL.host ?? "")
-            return .failure(AppModelError(message: "A server at \(hostPort) is already in your list."))
-        }
-        let server = Server(name: trimmedName, baseURL: baseURL, icon: icon, apiKey: Self.normalizedKey(apiKey))
-        servers.append(server)
-        return .success(server)
     }
 
     @discardableResult
@@ -56,6 +47,21 @@ final class AppModel {
         guard let index = servers.firstIndex(where: { $0.id == id }) else {
             return .failure(AppModelError(message: "That server is no longer in your list."))
         }
+        switch validated(name: name, address: address, excludingID: id) {
+        case .failure(let error):
+            return .failure(error)
+        case .success(let trimmedName, let baseURL):
+            servers[index].name = trimmedName
+            servers[index].baseURL = baseURL
+            servers[index].icon = icon
+            servers[index].apiKey = Self.normalizedKey(apiKey)
+            return .success(servers[index])
+        }
+    }
+
+    /// Shared add/update validation: trims the name, normalizes the address,
+    /// and rejects an address another server already uses.
+    private func validated(name: String, address: String, excludingID: UUID?) -> Result<(name: String, baseURL: URL), AppModelError> {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
             return .failure(AppModelError(message: "Give the server a name."))
@@ -63,15 +69,10 @@ final class AppModel {
         guard let baseURL = Server.normalizedBaseURL(from: address) else {
             return .failure(AppModelError(message: "Use valid hostname or port, like 127.0.0.1:1235."))
         }
-        if servers.contains(where: { $0.id != id && $0.baseURL == baseURL }) {
-            let hostPort = baseURL.port.map { "\(baseURL.host ?? ""):\($0)" } ?? (baseURL.host ?? "")
-            return .failure(AppModelError(message: "A server at \(hostPort) is already in your list."))
+        if servers.contains(where: { $0.id != excludingID && $0.baseURL == baseURL }) {
+            return .failure(AppModelError(message: "A server at \(Server.hostPort(of: baseURL)) is already in your list."))
         }
-        servers[index].name = trimmedName
-        servers[index].baseURL = baseURL
-        servers[index].icon = icon
-        servers[index].apiKey = Self.normalizedKey(apiKey)
-        return .success(servers[index])
+        return .success((trimmedName, baseURL))
     }
 
     private static func normalizedKey(_ raw: String) -> String? {
@@ -81,15 +82,6 @@ final class AppModel {
 
     func removeServer(_ id: UUID) {
         servers.removeAll { $0.id == id }
-        selections.removeAll { $0.serverID == id }
-    }
-
-    func toggleSelection(_ selection: ModelSelection) {
-        if let index = selections.firstIndex(of: selection) {
-            selections.remove(at: index)
-        } else {
-            selections.append(selection)
-        }
     }
 
     // MARK: - Persistence
