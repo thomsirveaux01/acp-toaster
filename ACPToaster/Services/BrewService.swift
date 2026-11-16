@@ -2,6 +2,15 @@ import Foundation
 
 /// Installs OpenCode via Homebrew, streaming live output.
 struct BrewService {
+    /// The one-liner that installs Homebrew itself. Copied to the clipboard
+    /// (never run by the app) because the installer needs sudo, which a GUI
+    /// app should not prompt for.
+    static let installerCommand =
+        "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+
+    /// The command that installs OpenCode via Homebrew.
+    static let opencodeInstallCommand = "brew install opencode"
+
     /// The Homebrew executable, if present.
     static func brewPath() -> String? {
         for candidate in ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]

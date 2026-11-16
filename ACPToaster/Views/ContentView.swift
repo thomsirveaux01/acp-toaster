@@ -10,8 +10,9 @@ struct ContentView: View {
     /// Defaulted so the preview compiles without owning one.
     @ObservedObject var updater: UpdateChecker = UpdateChecker()
 
-    /// First-run setup is complete once OpenCode has been found at least once.
-    @State private var setupComplete = UserDefaults.standard.bool(forKey: SettingsView.setupCompleteKey)
+    /// First-run setup is complete once the wizard has been finished or
+    /// skipped at least once.
+    @State private var setupComplete = UserDefaults.standard.bool(forKey: FirstRunView.setupCompleteKey)
 
     /// The server currently selected in the sidebar.
     @State private var selectedServerID: UUID?
@@ -39,10 +40,9 @@ struct ContentView: View {
             if setupComplete {
                 mainFlow
             } else {
-                // First launch: the settings checkers own the whole window
-                // until OpenCode is found, then the main flow appears in its
-                // place.
-                SettingsView(onFound: { setupComplete = true }, updater: updater)
+                // First launch: the three-screen wizard owns the whole
+                // window until the user finishes or skips it.
+                FirstRunView { setupComplete = true }
             }
         }
         .frame(minWidth: 640, minHeight: 480)

@@ -3,39 +3,24 @@ import AppKit
 
 /// The app's settings: checkers for the local toolchain (Homebrew and
 /// OpenCode) with install buttons, and the app's own version with a passive
-/// update check. Shown both as the first-run gate inside the main window and
-/// as the standard Settings window (⌘, / toolbar gear).
+/// update check. Shown as the standard Settings window (⌘, / toolbar gear).
 struct SettingsView: View {
-    /// Called when OpenCode is found. In the first-run flow this advances
-    /// the app into the main window; the Settings window ignores it.
-    var onFound: () -> Void = {}
-
     /// The shared update checker, observed so the version row gains its
     /// Download button when a check finds a newer release.
     @ObservedObject var updater: UpdateChecker
-
-    /// UserDefaults key marking first-run setup as complete.
-    static let setupCompleteKey = "acptoaster.setupComplete"
 
     /// UserDefaults keys for the last known tool states, so the window can
     /// show them instantly on open and re-check in the background.
     private static let brewCacheKey = "acptoaster.toolchain.brew"
     private static let opencodeCacheKey = "acptoaster.toolchain.opencode"
 
-    init(onFound: @escaping () -> Void = {},
-         updater: UpdateChecker) {
-        self.onFound = onFound
+    init(updater: UpdateChecker) {
         self._updater = ObservedObject(wrappedValue: updater)
         // Restore the last known results so the window shows them instantly;
         // the background check confirms or updates them in place.
         _brewState = State(initialValue: Self.cachedState(Self.brewCacheKey))
         _opencodeState = State(initialValue: Self.cachedState(Self.opencodeCacheKey))
     }
-
-    /// Homebrew's installer needs sudo, which a GUI app should not prompt
-    /// for, so the Homebrew "Install" button copies this one-liner instead.
-    private static let brewInstallerCommand =
-        "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
 
     /// The official OpenCode installer, copied to the clipboard when
     /// Homebrew isn't available to install it.
@@ -226,7 +211,7 @@ struct SettingsView: View {
     private var brewButton: some View {
         Button {
             NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(Self.brewInstallerCommand, forType: .string)
+            NSPasteboard.general.setString(BrewService.installerCommand, forType: .string)
             brewCommandCopied = true
         } label: {
             Text("Install")
@@ -269,11 +254,6 @@ struct SettingsView: View {
         return false
     }
 
-    private var openCodeInstalled: Bool {
-        if case .installed = opencodeState { return true }
-        return false
-    }
-
     /// True only once the check has completed and the tool is missing.
     private var brewMissing: Bool {
         if case .notInstalled = brewState { return true }
@@ -302,11 +282,6 @@ struct SettingsView: View {
             opencodeState = .notInstalled
         }
         Self.saveState(opencodeState, Self.opencodeCacheKey)
-        if openCodeInstalled {
-            // First-run gate: OpenCode is present, so setup is complete.
-            UserDefaults.standard.set(true, forKey: Self.setupCompleteKey)
-            onFound()
-        }
     }
 
     /// The last known state for a tool, or .checking on the very first run.
