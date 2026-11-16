@@ -37,6 +37,11 @@ struct SettingsView: View {
     private static let brewInstallerCommand =
         "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
 
+    /// The official OpenCode installer, copied to the clipboard when
+    /// Homebrew isn't available to install it.
+    private static let opencodeInstallerCommand =
+        "curl -fsSL https://opencode.ai/v2/install | bash"
+
     /// The installation state of one tool.
     private enum ToolState: Equatable, Codable {
         case checking
@@ -49,6 +54,7 @@ struct SettingsView: View {
     @State private var isInstallingOpenCode = false
     @State private var openCodeInstallError: String?
     @State private var brewCommandCopied = false
+    @State private var openCodeCommandCopied = false
     @State private var installTask: Task<Void, Never>?
 
     /// Re-checks when the window becomes active again, so an install done in
@@ -201,7 +207,14 @@ struct SettingsView: View {
         if isInstallingOpenCode { return "Installing via Homebrew…" }
         if let openCodeInstallError { return openCodeInstallError }
         guard openCodeMissing else { return nil }
-        return brewInstalled ? nil : "Install Homebrew first."
+        // Without Homebrew the button copies the official installer instead
+        // of running it.
+        guard brewInstalled else {
+            return openCodeCommandCopied
+                ? "Copied — paste it into Terminal."
+                : "Homebrew isn't installed, so Install copies the official installer command — paste it into Terminal."
+        }
+        return nil
     }
 
     private var openCodeCaptionIsError: Bool {
@@ -224,7 +237,14 @@ struct SettingsView: View {
 
     private var openCodeButton: some View {
         Button {
-            installTask = Task { await installOpenCode() }
+            if brewInstalled {
+                installTask = Task { await installOpenCode() }
+            } else {
+                // No Homebrew: copy the official installer command instead.
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(Self.opencodeInstallerCommand, forType: .string)
+                openCodeCommandCopied = true
+            }
         } label: {
             if isInstallingOpenCode {
                 // Keep the button's size constant while the spinner spins.
@@ -237,9 +257,9 @@ struct SettingsView: View {
                 Text("Install")
             }
         }
-        // Grayed out while checking, while installing, when OpenCode is
-        // already installed, or when Homebrew is missing (it's the installer).
-        .disabled(!openCodeMissing || isInstallingOpenCode || !brewInstalled)
+        // Grayed out while checking and while installing. Homebrew is no
+        // longer a requirement: without it the button copies the command.
+        .disabled(!openCodeMissing || isInstallingOpenCode)
     }
 
     // MARK: - State helpers
@@ -270,11 +290,11 @@ struct SettingsView: View {
     /// Checks both tools concurrently and reports the results. The previous
     /// results stay visible while the check runs, so nothing pops in.
     private func check() async {
-        async let brewVersion = BrewService.brewVersion()
         async let detection = OpencodeLocator().detect()
-        let (version, result) = await (brewVersion, detection)
-        brewState = version.map(ToolState.installed) ?? .notInstalled
+        // Homebrew is only a presence check now — no version lookup.
+        brewState = BrewService.brewPath() != nil ? .installed(version: nil) : .notInstalled
         Self.saveState(brewState, Self.brewCacheKey)
+        let result = await detection
         switch result {
         case .found(_, let version):
             opencodeState = .installed(version: version)
