@@ -42,7 +42,15 @@ struct ContentView: View {
             } else {
                 // First launch: the three-screen wizard owns the whole
                 // window until the user finishes or skips it.
-                FirstRunView { setupComplete = true }
+                FirstRunView(
+                    onFinish: { setupComplete = true },
+                    onAddServer: {
+                        // Finish the wizard and drop straight into the
+                        // add-server sheet in the main window.
+                        setupComplete = true
+                        editorSheet = .add
+                    }
+                )
             }
         }
         .frame(minWidth: 640, minHeight: 480)

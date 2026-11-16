@@ -10,6 +10,10 @@ struct FirstRunView: View {
     /// into the main window.
     var onFinish: () -> Void
 
+    /// Called when the user taps "Add a server" on the last screen: the
+    /// wizard ends and the main window opens the add-server sheet.
+    var onAddServer: () -> Void = {}
+
     /// The three screens, in order.
     enum Screen {
         case welcome
@@ -37,9 +41,11 @@ struct FirstRunView: View {
          // Where the wizard starts. Defaulted so the production call site
          // stays clean; probes start on a specific screen.
          initialScreen: Screen = .welcome,
-         detectOpenCode: @escaping () async -> OpencodeLocator.Detection = { await OpencodeLocator().detect() }) {
+         detectOpenCode: @escaping () async -> OpencodeLocator.Detection = { await OpencodeLocator().detect() },
+         onAddServer: @escaping () -> Void = {}) {
         self.onFinish = onFinish
         self.detectOpenCode = detectOpenCode
+        self.onAddServer = onAddServer
         _screen = State(initialValue: initialScreen)
     }
 
@@ -83,7 +89,7 @@ struct FirstRunView: View {
             Text("Welcome to ACP Toaster!")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-            Text("ACP Toaster makes it easy to use third-party AI agents, including self-hosted agents, in Xcode 27. Using OpenCode, connect to any MCP server and create a wrapper that can be plugged into Xcode and use all of its agent skills.")
+            Text("ACP Toaster makes it easy to use third-party AI agents, including self-hosted agents, in Xcode 27. Using OpenCode, connect to any MCP server and create a wrapper that can be plugged into Xcode and use its native agent skills.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: 440)
@@ -136,7 +142,7 @@ struct FirstRunView: View {
                 .fontWeight(.semibold)
             HStack(spacing: 8) {
                 Text(command)
-                    .font(.system(.callout, design: .monospaced))
+                    .font(.system(.body, design: .monospaced))
                     .textSelection(.enabled)
                 Button("Copy") {
                     NSPasteboard.general.clearContents()
@@ -146,8 +152,6 @@ struct FirstRunView: View {
                 .controlSize(.small)
             }
             Text(copied.wrappedValue ? "Copied — paste it into Terminal." : " ")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -157,17 +161,19 @@ struct FirstRunView: View {
             Text("Add a server")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-            Text("Enter the IP address or hostname and the port of the server you'd like to connect to. The app supports OpenAI/MCP, LM Studio, and Ollama server endpoints.")
+            Text("Enter the IP address or hostname and the port of the server you'd like to connect to.\n\nThe app supports OpenAI/MCP, LM Studio, and Ollama server endpoints.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: 440)
-            Text("Use 127.0.0.1 for models being served locally, a LAN IP for another server on your local network, or a Tailscale IP or MagicDNS hostname for remote access from anywhere (recommended).")
+            Text("Use 127.0.0.1 for models being served locally, a LAN IP for another server on your local network, or a Tailscale IP or MagicDNS hostname for remote access from anywhere.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: 440)
             Text("Happy coding!")
                 .font(.title3)
                 .fontWeight(.semibold)
+            Button("Add a server") { finishAndAddServer() }
+                .buttonStyle(.borderedProminent)
         }
     }
 
@@ -209,6 +215,13 @@ struct FirstRunView: View {
     private func finish() {
         UserDefaults.standard.set(true, forKey: Self.setupCompleteKey)
         onFinish()
+    }
+
+    /// Ends the wizard from the "Add a server" button: remembers that setup
+    /// is complete and asks the main window to open the add-server sheet.
+    private func finishAndAddServer() {
+        UserDefaults.standard.set(true, forKey: Self.setupCompleteKey)
+        onAddServer()
     }
 }
 
