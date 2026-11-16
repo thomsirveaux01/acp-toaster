@@ -30,6 +30,9 @@ struct ServerDetailView: View {
                             if let kind = state.kind {
                                 Text("Server type: \(kind.rawValue)")
                                     .font(.headline)
+                                Text("In Xcode 27, navigate to the Intelligence settings, click Add an Agent, and paste the wrapper into the Executable field.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                             HStack {
                                 statusLabel
