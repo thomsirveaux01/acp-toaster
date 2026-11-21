@@ -248,7 +248,9 @@ struct ServerDetailView: View {
             }
             .controlSize(.small)
             .padding(.horizontal, 8)
-            .padding(.vertical, 8)
+            // 31pt + the 1pt divider: a 32pt strip matching the sidebar's
+            // +/− bar.
+            .frame(height: 31)
         }
     }
 

@@ -39,13 +39,13 @@ struct SettingsView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        VStack(spacing: 28) {
-            toolRow(label: "OpenCode:", state: opencodeState, caption: openCodeCaption, isError: openCodeCaptionIsError) {
-                openCodeButton
-            }
-            versionRow
+        VStack(alignment: .leading, spacing: 20) {
+            opencodeSection
+            Divider()
+            versionSection
         }
-        .padding(28)
+        .padding(.horizontal, 48)
+        .padding(.vertical, 28)
         .frame(width: 520)
         .task {
             await check()
@@ -59,31 +59,24 @@ struct SettingsView: View {
         .onDisappear { installTask?.cancel() }
     }
 
-    // MARK: - Rows
+    // MARK: - Sections
 
-    /// One Tailscale-style settings row; the status and caption areas have fixed sizes so nothing moves while the check runs.
-    private func toolRow<Trailing: View>(
-        label: String,
-        state: ToolState,
-        caption: String?,
-        isError: Bool,
-        @ViewBuilder trailing: () -> Trailing
-    ) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text(label)
+    /// One settings section; the status and caption areas have fixed sizes so nothing moves while the check runs.
+    private var opencodeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("OpenCode:")
                 .fontWeight(.semibold)
-                .frame(width: 100, alignment: .trailing)
-            VStack(alignment: .leading, spacing: 4) {
-                statusLine(for: state)
-                    .frame(width: 220, height: 18, alignment: .leading)
-                // Always render one caption line (blank when there's nothing
-                // to say) so the row's height stays constant.
-                Text(caption ?? " ")
-                    .font(.caption)
-                    .foregroundStyle(isError ? Color.red : Color.secondary)
+            HStack(alignment: .center) {
+                statusLine(for: opencodeState)
+                    .frame(height: 18, alignment: .leading)
+                Spacer()
+                openCodeButton
             }
-            Spacer()
-            trailing()
+            // Always render one caption line (blank when there's nothing
+            // to say) so the section's height stays constant.
+            Text(openCodeCaption ?? " ")
+                .font(.caption)
+                .foregroundStyle(openCodeCaptionIsError ? Color.red : Color.secondary)
         }
     }
 
@@ -112,28 +105,23 @@ struct SettingsView: View {
         }
     }
 
-    private var versionRow: some View {
-        HStack(alignment: .top, spacing: 12) {
+    private var versionSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Version:")
                 .fontWeight(.semibold)
-                .frame(width: 100, alignment: .trailing)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(updater.currentVersion)
-                    if let build = Self.buildVersion {
-                        Text("· build \(build)")
-                            .foregroundStyle(.secondary)
-                    }
+            HStack(spacing: 6) {
+                Text(updater.currentVersion)
+                if let build = Self.buildVersion {
+                    Text("· build \(build)")
+                        .foregroundStyle(.secondary)
                 }
-                .lineLimit(1)
-                .frame(width: 220, height: 18, alignment: .leading)
-                // Always render one caption line (blank when there's nothing
-                // to say) so the row's height stays constant.
-                Text(updateCaption ?? " ")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
-            Spacer()
+            .lineLimit(1)
+            // Always render one caption line (blank when there's nothing
+            // to say) so the section's height stays constant.
+            Text(updateCaption ?? " ")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             if updater.availableUpdate != nil {
                 Button("Download") {
                     Task { await updater.downloadAvailableUpdate() }

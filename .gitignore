@@ -1,6 +1,10 @@
 # Local agent handoff doc — not for the repo.
 HANDOFF.md
 
+# Release toolkit (dmgbuild settings, background generator) — local working
+# files, as in Running the Table.
+.opencode/
+
 # macOS / Dropbox
 .DS_Store
 

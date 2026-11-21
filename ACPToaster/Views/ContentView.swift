@@ -139,8 +139,9 @@ struct ContentView: View {
                             .foregroundStyle(.secondary)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(server.name)
+                                .font(.body.weight(.medium))
                             Text(server.hostPort)
-                                .font(.caption)
+                                .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -149,6 +150,7 @@ struct ContentView: View {
                     .onTapGesture(count: 2) {
                         editorSheet = .edit(server)
                     }
+                    .listRowBackground(separationRule(after: server))
                 }
             }
             .navigationTitle("Servers")
@@ -181,9 +183,36 @@ struct ContentView: View {
             .buttonStyle(.borderless)
             .controlSize(.small)
             .padding(.horizontal, 8)
-            .padding(.vertical, 8)
+            // 31pt + the 1pt divider: a 32pt strip matching the detail's
+            // status bar.
+            .frame(height: 31)
         }
         .navigationSplitViewColumnWidth(200)
+    }
+
+    // listRowBackground is sized to the whole row, so it lands on the row
+    // boundary; an overlay on the row content stops ~4pt short.
+    @ViewBuilder
+    private func separationRule(after server: Server) -> some View {
+        Color.clear.overlay(alignment: .bottom) {
+            if showsRule(after: server) {
+                Rectangle()
+                    .fill(Color(nsColor: .separatorColor))
+                    .frame(height: 1)
+                    // 10pt matches the selection pill's inset.
+                    .padding(.horizontal, 10)
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+
+    // The pill fills the row, so a rule touching it — either under it or
+    // against its top edge — reads as a stray hairline across the highlight.
+    private func showsRule(after server: Server) -> Bool {
+        guard let idx = appModel.servers.firstIndex(where: { $0.id == server.id }),
+              idx + 1 < appModel.servers.count else { return false }
+        return selectedServerID != server.id
+            && selectedServerID != appModel.servers[idx + 1].id
     }
 
     @ViewBuilder
